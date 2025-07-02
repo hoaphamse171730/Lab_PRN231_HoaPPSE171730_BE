@@ -1,0 +1,39 @@
+# === ASP.NET Core / .NET Core ===
+
+## Build output
+bin/
+obj/
+
+## Rider / JetBrains
+.idea/
+*.sln.iml
+
+## Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+## Publish folders
+publish/
+out/
+
+## NuGet packages
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+
+## Appsettings
+appsettings.json
+appsettings.*.json
+
+## .NET Core artifacts
+project.lock.json
+project.fragment.lock.json
+artifacts/
+*.dbmdl
+
+## Logs
+*.log
