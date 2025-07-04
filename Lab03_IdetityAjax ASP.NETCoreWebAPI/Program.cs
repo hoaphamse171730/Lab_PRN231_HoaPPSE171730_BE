@@ -1,5 +1,7 @@
 using BusinessObjects.Entities;
 using Microsoft.EntityFrameworkCore;
+using Repositories.Interfaces;
+using Repositories.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,7 +13,16 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<MyDbContext>(options =>
   options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+
 builder.Services.AddScoped<DbContext, MyDbContext>();
+builder.Services.AddScoped<IUOW, UOW>();
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+//Remember addScope above UOW, below  DBContext
+//		builder.Services.AddScoped<IAuthService, AuthService>();
+
+//// Add services to the container.
+
 
 var app = builder.Build();
 
@@ -37,20 +48,4 @@ app.Run();
 
 
 
-////Other addScope
-//builder.Services.AddScoped<IUOW, UOW>();
-//builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-
-//Remember addScope above UOW, below  DBContext
-//		builder.Services.AddScoped<IAuthService, AuthService>();
-
-//// Add services to the container.
-//builder.Services.AddRazorPages(options =>
-//{
-//    options.Conventions.AddPageRoute("/Login", "");
-//});
-//// update index page into @page "/Home"
-
-//// Sau add staticFile
-//app.UseSession();
 
