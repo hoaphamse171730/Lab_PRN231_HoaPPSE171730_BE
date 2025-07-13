@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36127.28 d17.14
+VisualStudioVersion = 17.14.36127.28
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lab03_IdetityAjax ASP.NETCoreWebAPI", "Lab03_IdetityAjax ASP.NETCoreWebAPI.csproj", "{D0D2C1C8-C6A3-44C3-B689-D5C0F7A3B9B9}"
 EndProject
@@ -10,6 +10,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Repositories", "..\Repositories\Repositories.csproj", "{54B510CB-22E3-4042-80E5-4423C3F005A8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataAccess", "..\DataAccess\DataAccess.csproj", "{8C79C596-8406-44D2-9160-050E7DB098E9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdentityAjaxClient", "..\IdentityAjaxClient\IdentityAjaxClient.csproj", "{5EF41414-ECA8-4A32-9C28-981FD004D8D0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{8C79C596-8406-44D2-9160-050E7DB098E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8C79C596-8406-44D2-9160-050E7DB098E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8C79C596-8406-44D2-9160-050E7DB098E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5EF41414-ECA8-4A32-9C28-981FD004D8D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5EF41414-ECA8-4A32-9C28-981FD004D8D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5EF41414-ECA8-4A32-9C28-981FD004D8D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5EF41414-ECA8-4A32-9C28-981FD004D8D0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

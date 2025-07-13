@@ -1,0 +1,115 @@
+﻿@{
+    ViewData["Title"] = "Manage Orchids";
+}
+<h2>@ViewData["Title"]</h2>
+
+<button id="btnAdd">Add New Orchid</button>
+<table id="tblOrchids">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Price</th>
+            <th>Natural?</th>
+            <th>Category</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<div id="orchidModal" style="display:none;">
+    <input type="hidden" id="orchidId" />
+    <label>Name</label>
+    <input id="orchidName" /><br />
+
+    <label>Price</label>
+    <input id="orchidPrice" type="number" step="0.01" /><br />
+
+    <label>Natural?</label>
+    <input id="orchidIsNatural" type="checkbox" /><br />
+
+    <label>Category ID</label>
+    <input id="orchidCategoryId" type="number" /><br />
+
+    <button id="saveOrchid">Save</button>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        const apiBase = 'https://localhost:7244/api/Orchids';
+
+        function loadOrchids() {
+          $.get(apiBase, data => {
+            const rows = data.map(o =>
+              `<tr>
+                <td>${o.orchidId}</td>
+                <td>${o.orchidName}</td>
+                <td>${o.price}</td>
+                <td>${o.isNatural}</td>
+                <td>${o.category?.categoryName || '—'}</td>
+                <td>
+                  <button class="edit" data-id="${o.orchidId}">Edit</button>
+                  <button class="del"  data-id="${o.orchidId}">Delete</button>
+                </td>
+              </tr>`);
+            $('#tblOrchids tbody').html(rows.join(''));
+          });
+        }
+
+        $(function(){
+          loadOrchids();
+
+          $('#btnAdd').click(()=> {
+            $('#orchidId').val(0);
+            $('#orchidName,#orchidPrice,#orchidCategoryId').val('');
+            $('#orchidIsNatural').prop('checked', false);
+            $('#orchidModal').show();
+          });
+
+          $(document).on('click','.edit',function(){
+            const id = $(this).data('id');
+            $.get(`${apiBase}/${id}`, o => {
+              $('#orchidId').val(o.orchidId);
+              $('#orchidName').val(o.orchidName);
+              $('#orchidPrice').val(o.price);
+              $('#orchidIsNatural').prop('checked', o.isNatural);
+              $('#orchidCategoryId').val(o.categoryId || '');
+              $('#orchidModal').show();
+            });
+          });
+
+          $(document).on('click','.del',function(){
+            if(!confirm('Delete this orchid?')) return;
+            const id = $(this).data('id');
+            $.ajax({ url:`${apiBase}/${id}`, type:'DELETE' })
+              .done(loadOrchids);
+          });
+
+          $('#saveOrchid').click(()=>{
+            const orchid = {
+              orchidId: +$('#orchidId').val(),
+              orchidName: $('#orchidName').val(),
+              price:       +$('#orchidPrice').val(),
+              isNatural:   $('#orchidIsNatural').is(':checked'),
+              categoryId:  +$('#orchidCategoryId').val() || null
+            };
+            const method = orchid.orchidId === 0 ? 'POST' : 'PUT';
+            const url    = orchid.orchidId === 0
+                           ? apiBase
+                           : `${apiBase}/${orchid.orchidId}`;
+
+            $.ajax({
+              url,
+              type: method,
+              contentType: 'application/json',
+              data: JSON.stringify(orchid)
+            }).done(() => {
+              $('#orchidModal').hide();
+              loadOrchids();
+            });
+          });
+        });
+    </script>
+}
