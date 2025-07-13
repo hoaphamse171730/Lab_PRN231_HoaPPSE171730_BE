@@ -1,23 +1,20 @@
-# === ASP.NET Core / .NET Core ===
-
-## Build output
-bin/
-obj/
-
-## Rider / JetBrains
-.idea/
-*.sln.iml
-
-## Visual Studio
+# ========== Visual Studio & .NET Core ==========
+## User-specific files
 .vs/
 *.suo
 *.user
 *.userosscache
 *.sln.docstates
 
-## Publish folders
+## Build outputs
+bin/
+obj/
 publish/
-out/
+artifacts/
+
+## Rider / JetBrains
+.idea/
+*.sln.iml
 
 ## NuGet packages
 *.nupkg
@@ -25,15 +22,53 @@ out/
 **/packages/*
 !**/packages/build/
 
-## Appsettings
+## EF Core tooling
+*.dbmdl
+
+## Application settings (if you store secrets here)
 appsettings.json
 appsettings.*.json
 
-## .NET Core artifacts
-project.lock.json
-project.fragment.lock.json
-artifacts/
-*.dbmdl
+# ========== Front-end / Node ==========
+## dependencies
+node_modules/
 
-## Logs
+## build / bundler
+dist/
+build/
+wwwroot/lib/
+
+## logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+## lock files (optional: you may want to check these in)
+# package-lock.json
+# yarn.lock
+
+# ========== IDE / Editor ==========
+## VS Code
+.vscode/
+
+## macOS
+.DS_Store
+
+## Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ========== Misc ==========
+## Logs and temp
 *.log
+*.tmp
+*.temp
+
+## Generated files
+*.cache
+.cache/
+
+## Secrets (if you ever add .env files)
+.env
+.env.*  
