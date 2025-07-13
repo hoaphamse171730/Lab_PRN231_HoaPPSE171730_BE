@@ -1,10 +1,11 @@
 ﻿@{
     ViewData["Title"] = "Manage Orchids";
 }
+
 <h2>@ViewData["Title"]</h2>
 
-<button id="btnAdd">Add New Orchid</button>
-<table id="tblOrchids">
+<button id="btnAdd" class="btn btn-success mb-2">Add New Orchid</button>
+<table id="tblOrchids" class="table table-striped">
     <thead>
         <tr>
             <th>ID</th>
@@ -18,42 +19,69 @@
     <tbody></tbody>
 </table>
 
-<div id="orchidModal" style="display:none;">
-    <input type="hidden" id="orchidId" />
-    <label>Name</label>
-    <input id="orchidName" /><br />
-
-    <label>Price</label>
-    <input id="orchidPrice" type="number" step="0.01" /><br />
-
-    <label>Natural?</label>
-    <input id="orchidIsNatural" type="checkbox" /><br />
-
-    <label>Category ID</label>
-    <input id="orchidCategoryId" type="number" /><br />
-
-    <button id="saveOrchid">Save</button>
+<div id="orchidModal" class="modal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content p-3">
+            <input type="hidden" id="orchidId" />
+            <div class="mb-2">
+                <label>Name</label>
+                <input id="orchidName" class="form-control" />
+            </div>
+            <div class="mb-2">
+                <label>Price</label>
+                <input id="orchidPrice" type="number" step="0.01" class="form-control" />
+            </div>
+            <div class="mb-2 form-check">
+                <input id="orchidIsNatural" type="checkbox" class="form-check-input" />
+                <label class="form-check-label" for="orchidIsNatural">Natural?</label>
+            </div>
+            <div class="mb-2">
+                <label>Category ID</label>
+                <input id="orchidCategoryId" type="number" class="form-control" />
+            </div>
+            <button id="saveOrchid" class="btn btn-primary">Save</button>
+            <button id="cancelOrchid" class="btn btn-secondary">Cancel</button>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        const apiBase = 'https://localhost:7244/api/Orchids';
+        // pull in your centralized routes
+        const ROUTES = {
+          orchids:      '@BusinessObjects.Shared.ApiRoutes.Orchids',
+          authLogin:    '@BusinessObjects.Shared.ApiRoutes.AuthLogin',
+          authRegister: '@BusinessObjects.Shared.ApiRoutes.AuthRegister'
+        };
+
+        // read JWT from cookie
+        function getCookie(name) {
+          return document.cookie.split('; ')
+            .find(r => r.startsWith(name + '='))
+            ?.split('=')[1];
+        }
+        const token = getCookie('AuthToken');
+        // auto attach Bearer token
+        $.ajaxSetup({
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
 
         function loadOrchids() {
-          $.get(apiBase, data => {
+          $.get(ROUTES.orchids, data => {
             const rows = data.map(o =>
               `<tr>
-                <td>${o.orchidId}</td>
-                <td>${o.orchidName}</td>
-                <td>${o.price}</td>
-                <td>${o.isNatural}</td>
-                <td>${o.category?.categoryName || '—'}</td>
-                <td>
-                  <button class="edit" data-id="${o.orchidId}">Edit</button>
-                  <button class="del"  data-id="${o.orchidId}">Delete</button>
-                </td>
-              </tr>`);
+                 <td>${o.orchidId}</td>
+                 <td>${o.orchidName}</td>
+                 <td>${o.price}</td>
+                 <td>${o.isNatural}</td>
+                 <td>${o.category?.categoryName ?? '—'}</td>
+                 <td>
+                   <button class="btn btn-sm btn-primary edit" data-id="${o.orchidId}">Edit</button>
+                   <button class="btn btn-sm btn-danger del"  data-id="${o.orchidId}">Delete</button>
+                 </td>
+               </tr>`);
             $('#tblOrchids tbody').html(rows.join(''));
           });
         }
@@ -62,29 +90,28 @@
           loadOrchids();
 
           $('#btnAdd').click(()=> {
-            $('#orchidId').val(0);
-            $('#orchidName,#orchidPrice,#orchidCategoryId').val('');
+            $('#orchidModal').modal('show');
+            $('#orchidId,#orchidName,#orchidPrice,#orchidCategoryId').val('');
             $('#orchidIsNatural').prop('checked', false);
-            $('#orchidModal').show();
           });
 
           $(document).on('click','.edit',function(){
             const id = $(this).data('id');
-            $.get(`${apiBase}/${id}`, o => {
+            $.get(`${ROUTES.orchids}/${id}`, o => {
               $('#orchidId').val(o.orchidId);
               $('#orchidName').val(o.orchidName);
               $('#orchidPrice').val(o.price);
               $('#orchidIsNatural').prop('checked', o.isNatural);
-              $('#orchidCategoryId').val(o.categoryId || '');
-              $('#orchidModal').show();
+              $('#orchidCategoryId').val(o.categoryId ?? '');
+              $('#orchidModal').modal('show');
             });
           });
 
           $(document).on('click','.del',function(){
             if(!confirm('Delete this orchid?')) return;
             const id = $(this).data('id');
-            $.ajax({ url:`${apiBase}/${id}`, type:'DELETE' })
-              .done(loadOrchids);
+            $.ajax({ url:`${ROUTES.orchids}/${id}`, type:'DELETE' })
+             .done(loadOrchids);
           });
 
           $('#saveOrchid').click(()=>{
@@ -97,8 +124,8 @@
             };
             const method = orchid.orchidId === 0 ? 'POST' : 'PUT';
             const url    = orchid.orchidId === 0
-                           ? apiBase
-                           : `${apiBase}/${orchid.orchidId}`;
+                           ? ROUTES.orchids
+                           : `${ROUTES.orchids}/${orchid.orchidId}`;
 
             $.ajax({
               url,
@@ -106,10 +133,12 @@
               contentType: 'application/json',
               data: JSON.stringify(orchid)
             }).done(() => {
-              $('#orchidModal').hide();
+              $('#orchidModal').modal('hide');
               loadOrchids();
             });
           });
+
+          $('#cancelOrchid').click(() => $('#orchidModal').modal('hide'));
         });
     </script>
 }

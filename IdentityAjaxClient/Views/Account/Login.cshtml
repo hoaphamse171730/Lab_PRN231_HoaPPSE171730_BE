@@ -1,5 +1,4 @@
-﻿@using BusinessObjects.Models.Accounts
-@model LoginRequest
+﻿@model BusinessObjects.Models.Accounts.LoginRequest
 
 @{
     ViewData["Title"] = "Login";
@@ -11,23 +10,27 @@
     <div class="form-group">
         <label asp-for="Email"></label>
         <input asp-for="Email" class="form-control" />
-        <span asp-validation-for="Email" class="text-danger"></span>
     </div>
     <div class="form-group">
         <label asp-for="Password"></label>
         <input asp-for="Password" type="password" class="form-control" />
-        <span asp-validation-for="Password" class="text-danger"></span>
     </div>
     <button type="submit" class="btn btn-primary">Log in</button>
 </form>
 
-<div class="text-danger">
-    @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
-    {
-        <p>@err.ErrorMessage</p>
-    }
-</div>
-
 @section Scripts {
-    <partial name="_ValidationScriptsPartial" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/3.2.12/jquery.validate.unobtrusive.min.js"></script>
+
+    <script>
+        // show ModelState errors in a pop-up
+        @(Html.Raw(@"
+            var errors = " +
+                    Json.Serialize(ViewData.ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)) + @";
+            if (errors.length) {
+                errors.forEach(msg => alert(msg));
+            }"))
+</script>
 }

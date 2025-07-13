@@ -1,86 +1,75 @@
 ﻿using BusinessObjects.Models.Accounts;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace IdentityAjaxClient.Controllers
 {
+
     public class AccountController : Controller
     {
         private readonly IHttpClientFactory _httpFactory;
-
         public AccountController(IHttpClientFactory httpFactory)
-        {
-            _httpFactory = httpFactory;
-        }
+            => _httpFactory = httpFactory;
+
         [HttpGet]
-        public IActionResult Register() => View(new RegisterRequest());
+        public IActionResult Login() => View(new LoginRequest());
 
         [HttpPost]
-        public async Task<IActionResult> Register(RegisterRequest model)
+        public async Task<IActionResult> Login(LoginRequest model)
         {
             if (!ModelState.IsValid)
                 return View(model);
 
             var client = _httpFactory.CreateClient();
             var resp = await client.PostAsJsonAsync(
-                "https://localhost:7244/api/auth/register", model);
+                BusinessObjects.Shared.ApiRoutes.AuthLogin, model);
 
             if (!resp.IsSuccessStatusCode)
             {
-                var error = await resp.Content.ReadAsStringAsync();
-                ModelState.AddModelError("", error);
+                ModelState.AddModelError("", "Invalid email or password");
                 return View(model);
             }
 
-            // On success, redirect to Login
-            return RedirectToAction(nameof(Login));
-        }
+            var result = await resp.Content
+                                   .ReadFromJsonAsync<LoginResponse>();
+            if (result is null)
+            {
+                ModelState.AddModelError("", "Invalid response from server");
+                return View(model);
+            }
 
-        [HttpGet]
-        public IActionResult Login()
-        {
-            return View(new LoginRequest());
+            // Store the JWT in a cookie (optional, for your AJAX calls)
+            Response.Cookies.Append("AuthToken",
+                result.Token,
+                new CookieOptions { HttpOnly = true, Secure = true });
+
+            // **Sign in the MVC cookie** **
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name,    model.Email),
+                new Claim("access_token",     result.Token)
+            };
+            var identity = new ClaimsIdentity(
+                claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(identity));
+
+            // Redirect to Home (navbar will now see you as authenticated)
+            return RedirectToAction("Index", "Home");
         }
 
         [HttpPost]
-        public async Task<IActionResult> Login(string email, string password)
+        public async Task<IActionResult> Logout()
         {
-            var client = _httpFactory.CreateClient();
-            var loginReq = new LoginRequest { Email = email, Password = password };
-
-            var response = await client.PostAsJsonAsync(
-                "https://localhost:7244/api/auth/login",
-                loginReq);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                ModelState.AddModelError("", "Login failed");
-                return View();
-            }
-
-            var loginRes = await response.Content
-                                         .ReadFromJsonAsync<LoginResponse>();
-
-            if (loginRes == null)
-            {
-                ModelState.AddModelError("", "Invalid response");
-                return View();
-            }
-
-            // Store token in a secure, HTTP-only cookie
-            Response.Cookies.Append("AuthToken",
-                loginRes.Token,
-                new CookieOptions { HttpOnly = true, Secure = true });
-
-            return RedirectToAction("Index", "Orchids");
-        }
-
-        [HttpGet]
-        public IActionResult Logout()
-        {
+            // Remove the JWT cookie too
             Response.Cookies.Delete("AuthToken");
-            return RedirectToAction("Login");
+            // Sign out the MVC cookie
+            await HttpContext.SignOutAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme);
+            return RedirectToAction("Index", "Home");
         }
-
-
     }
 }

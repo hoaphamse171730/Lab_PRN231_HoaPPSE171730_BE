@@ -5,37 +5,39 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. EF Core + Identity DbContext (your existing ApplicationDbContext)
+// Your existing EF + Identity setup
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
-builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+    ?? throw new InvalidOperationException("DefaultConnection not found");
+builder.Services.AddDbContext<ApplicationDbContext>(opts =>
+    opts.UseSqlServer(connectionString));
 
-// 2. ASP.NET Core Identity
-builder.Services
-    .AddDefaultIdentity<IdentityUser>(opts => opts.SignIn.RequireConfirmedAccount = true)
+builder.Services.AddDefaultIdentity<IdentityUser>(opts =>
+    opts.SignIn.RequireConfirmedAccount = false)
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
-// 3. Cookie Authentication (for MVC User.Identity)
+// 1) Cookie authentication for MVC
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie();
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.LogoutPath = "/Account/Logout";
+    });
 
-// 4. Register IHttpClientFactory so your AccountController can inject it
+// 2) So we can inject IHttpContextAccessor if you need it
+builder.Services.AddHttpContextAccessor();
+
+// 3) HttpClientFactory for calling your API
 builder.Services.AddHttpClient();
 
-// 5. MVC + Razor Pages
+// MVC
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
 var app = builder.Build();
 
-// pipeline (keep your existing dev/prod checks)
 if (app.Environment.IsDevelopment())
-{
     app.UseMigrationsEndPoint();
-}
 else
 {
     app.UseExceptionHandler("/Home/Error");
@@ -47,15 +49,13 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-// this must come *after* UseRouting and *before* Map*
+// **Order matters**: authentication first, then authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
-// your default routes
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}"
-);
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 app.MapRazorPages();
 
 app.Run();
