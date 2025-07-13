@@ -9,6 +9,8 @@ namespace DataAccess.Interfaces
 {
     public interface IAccountDAO
     {
+        Task<Account?> GetByEmailAsync(string email);
+
         Task<IEnumerable<Account>> GetAllAsync();
         Task<Account?> GetByIdAsync(int id);
         Task InsertAsync(Account account);

@@ -20,6 +20,11 @@ namespace DataAccess.Services
             _uow = uow;
             _repo = _uow.GetRepository<Account>();
         }
+        public async Task<Account?> GetByEmailAsync(string email) =>
+    await _repo.Entities
+               .Include(a => a.Role)
+               .Include(a => a.Orders)
+               .FirstOrDefaultAsync(a => a.Email == email);
 
         public async Task<IEnumerable<Account>> GetAllAsync() =>
             await _repo.Entities
