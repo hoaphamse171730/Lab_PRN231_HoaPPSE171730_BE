@@ -9,6 +9,7 @@ namespace BusinessObjects.Shared
     public static class ApiRoutes
     {
         public static string Orchids => $"{Constants.ApiBaseUrl}/api/Orchids";
+        public static string Categories => $"{Constants.ApiBaseUrl}/api/Categories";
         public static string Accounts => $"{Constants.ApiBaseUrl}/api/Accounts";
         public static string Orders => $"{Constants.ApiBaseUrl}/api/Orders";
         public static string OrderDetails => $"{Constants.ApiBaseUrl}/api/OrderDetails";

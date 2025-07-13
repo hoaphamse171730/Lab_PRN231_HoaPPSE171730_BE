@@ -59,6 +59,7 @@ builder.Services.AddScoped<IAccountDAO, AccountDAO>();
 builder.Services.AddScoped<IOrderDAO, OrderDAO>();
 builder.Services.AddScoped<IOrderDetailDAO, OrderDetailDAO>();
 builder.Services.AddScoped<IRoleDAO, RoleDAO>();
+builder.Services.AddScoped<ICategoryDAO, CategoryDAO>();
 
 
 //// Add services to the container.
