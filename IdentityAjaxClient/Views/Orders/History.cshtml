@@ -1,4 +1,5 @@
-﻿@{
+﻿@using BusinessObjects.Shared
+@{
     ViewData["Title"] = "My Orders";
 }
 
@@ -28,13 +29,20 @@
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        const ROUTES = { orders: '@BusinessObjects.Shared.ApiRoutes.Orders' };
-        const token  = localStorage.getItem('jwt') || '';
-        $.ajaxSetup({ headers: { 'Authorization': 'Bearer ' + token } });
+        const ROUTES   = { orders: '@BusinessObjects.Shared.ApiRoutes.Orders' };
+        const token    = localStorage.getItem('jwt') || '';
+        const role     = localStorage.getItem('role');
+        $.ajaxSetup({ headers:{ 'Authorization':'Bearer '+token } });
+
+        const STATUS = {
+          Pending:    '@Constants.OrderStatusPending',
+          Processing: '@Constants.OrderStatusProcessing',
+          Completed:  '@Constants.OrderStatusCompleted',
+          Cancelled:  '@Constants.OrderStatusCancelled'
+        };
 
         const pageSize    = 10;
-        let currentPage   = 1;
-        let totalCount    = 0;
+        let currentPage   = 1, totalCount = 0;
 
         function loadPage(page) {
           $.get(`${ROUTES.orders}?page=${page}&pageSize=${pageSize}`, resp => {
@@ -46,19 +54,35 @@
         }
 
         function renderTable(list) {
-          const rows = list.map(o => `
-            <tr>
-              <td>${o.id}</td>
-              <td>${new Date(o.orderDate).toLocaleString()}</td>
-              <td>${o.orderStatus}</td>
-              <td>$${o.totalAmount.toFixed(2)}</td>
-              <td>
-                <a href="/Orders/Details/${o.id}"
-                   class="btn btn-sm btn-info">
-                  Details
-                </a>
-              </td>
-            </tr>`).join('');
+          const rows = list.map(o => {
+            // Only staff get action buttons
+            let btns = '';
+            if (role === 'Staff') {
+              if (o.orderStatus === STATUS.Pending) {
+                btns = `
+                  <button class="btn btn-sm btn-success process" data-id="${o.id}">Process</button>
+                  <button class="btn btn-sm btn-danger cancel"  data-id="${o.id}">Cancel</button>
+                `;
+              } else if (o.orderStatus === STATUS.Processing) {
+                btns = `
+                  <button class="btn btn-sm btn-primary complete" data-id="${o.id}">Complete</button>
+                  <button class="btn btn-sm btn-danger  cancel"  data-id="${o.id}">Cancel</button>
+                `;
+              }
+            }
+
+            return `
+              <tr data-id="${o.id}">
+                <td>${o.id}</td>
+                <td>${new Date(o.orderDate).toLocaleString()}</td>
+                <td class="status-cell">${o.orderStatus}</td>
+                <td>$${o.totalAmount.toFixed(2)}</td>
+                <td>
+                  <a href="/Orders/Details/${o.id}" class="btn btn-sm btn-info me-1">Details</a>
+                  ${btns}
+                </td>
+              </tr>`;
+          }).join('');
           $('#tblHistory tbody').html(rows);
         }
 
@@ -69,19 +93,44 @@
           $('#nextPage').toggleClass('disabled', currentPage >= totalPages);
         }
 
-        $('#prevPage').click(() => {
-          if (currentPage > 1) {
-            loadPage(--currentPage);
-          }
+        $('#prevPage').click(()=>{ if(currentPage>1) loadPage(--currentPage); });
+        $('#nextPage').click(()=>{ if(currentPage*pageSize<totalCount) loadPage(++currentPage); });
+
+        // Shared handler for any status change
+        function changeStatus(id, newStatus, $row) {
+          $.ajax({
+            url: `${ROUTES.orders}/${id}/status`,
+            type: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify({ status: newStatus })
+          }).done(() => {
+            $row.find('.status-cell').text(newStatus);
+            // remove any process/complete/cancel buttons
+            $row.find('.process, .complete, .cancel').remove();
+          }).fail((xhr,_,err) => {
+            alert('Failed to update status: ' + (xhr.responseText||err));
+          });
+        }
+
+        // Button handlers
+        $(document).on('click', '.process', function(){
+          const id = $(this).data('id'),
+                $row = $(this).closest('tr');
+          changeStatus(id, STATUS.Processing, $row);
         });
-        $('#nextPage').click(() => {
-          if (currentPage * pageSize < totalCount) {
-            loadPage(++currentPage);
-          }
+        $(document).on('click', '.complete', function(){
+          const id = $(this).data('id'),
+                $row = $(this).closest('tr');
+          changeStatus(id, STATUS.Completed, $row);
+        });
+        $(document).on('click', '.cancel', function(){
+          const id = $(this).data('id'),
+                $row = $(this).closest('tr');
+          if (!confirm('Are you sure you want to cancel this order?')) return;
+          changeStatus(id, STATUS.Cancelled, $row);
         });
 
-        $(function(){
-          loadPage(1);
-        });
+        // Init
+        $(function(){ loadPage(1); });
     </script>
 }

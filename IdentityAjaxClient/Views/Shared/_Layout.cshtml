@@ -96,7 +96,7 @@
             $('#navChangePassword').toggle(!!token);
             $('#navCategoriesMgmt').toggle(role === 'Staff');
             $('#navCart').toggle(localStorage.getItem('role') === 'Customer');
-            $('#navMyOrders').toggle(localStorage.getItem('role') === 'Customer');
+            $('#navMyOrders').toggle(!!token);
 
           $('#logoutLink').click(e => {
             e.preventDefault();

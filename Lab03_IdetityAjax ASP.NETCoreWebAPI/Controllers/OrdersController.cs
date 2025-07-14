@@ -1,6 +1,6 @@
 ﻿// Lab03_IdetityAjax_ASP.NETCoreWebAPI/Controllers/OrdersController.cs
 using BusinessObjects.Entities;
-using BusinessObjects.Models.Accounts;
+using BusinessObjects.Models.Orders;
 using BusinessObjects.Shared;
 using DataAccess.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -91,7 +91,32 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
                 new { id = order.Id },
                 new { order.Id, order.TotalAmount });
         }
+        [HttpPut("{id}/status"), Authorize(Roles = "Staff")]
+        public async Task<IActionResult> UpdateStatus(int id,
+            [FromBody] UpdateOrderStatusRequest req)
+        {
+            // 1) Validate against the four statuses
+            var valid = new[]
+            {
+        Constants.OrderStatusPending,
+        Constants.OrderStatusProcessing,
+        Constants.OrderStatusCompleted,
+        Constants.OrderStatusCancelled
+    };
+            if (!valid.Contains(req.Status))
+                return BadRequest(
+                    $"Invalid status. Must be one of: {string.Join(", ", valid)}");
 
+            // 2) Load, update, save
+            var order = await _orderDao.GetByIdAsync(id);
+            if (order == null) return NotFound();
+
+            order.OrderStatus = req.Status;
+            await _orderDao.UpdateAsync(order);
+            await _orderDao.SaveAsync();
+
+            return NoContent();
+        }
 
         // GET /api/Orders/{id}
         [HttpGet("{id}"), Authorize]
