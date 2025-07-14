@@ -1,6 +1,7 @@
 ﻿using BusinessObjects.Entities;
 using DataAccess.Interfaces;
 using DataAccess.Services;
+using Lab03_IdetityAjax_ASP.NETCoreWebAPI.Hubs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -35,6 +36,7 @@ builder.Services.AddScoped<IAccountDAO, AccountDAO>();
 builder.Services.AddScoped<IOrderDAO, OrderDAO>();
 builder.Services.AddScoped<IOrderDetailDAO, OrderDetailDAO>();
 builder.Services.AddScoped<IRoleDAO, RoleDAO>();
+builder.Services.AddSignalR();
 
 // 3) JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"]!;
@@ -87,6 +89,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
+app.UseRouting();
 
 // **CRITICAL**: you must authenticate **before** authorizing
 app.UseAuthentication();
@@ -94,5 +97,6 @@ app.UseAuthorization();
 
 // 7) Map your controllers (including AuthController with its /me endpoint)
 app.MapControllers();
+app.MapHub<OrderNotificationHub>("/hubs/orders");
 
 app.Run();

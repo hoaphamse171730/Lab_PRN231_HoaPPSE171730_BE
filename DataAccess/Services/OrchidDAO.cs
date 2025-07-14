@@ -20,6 +20,12 @@ namespace DataAccess.Services
             _uow = uow;
             _repo = _uow.GetRepository<Orchid>();
         }
+        public async Task<IEnumerable<Orchid>> GetAllWithCategoryAsync() =>
+    await _repo.Entities.Include(o => o.Category).ToListAsync();
+        public async Task<Orchid?> GetByIdWithCategoryAsync(int id) =>
+    await _repo.Entities
+               .Include(o => o.Category)
+               .FirstOrDefaultAsync(o => o.OrchidId == id);
 
         public async Task<IEnumerable<Orchid>> GetAllAsync() =>
             await _repo.Entities

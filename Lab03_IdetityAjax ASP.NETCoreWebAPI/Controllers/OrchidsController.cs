@@ -17,16 +17,45 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
         public OrchidsController(IOrchidDAO dao) => _dao = dao;
 
         [HttpGet]
-        public async Task<IActionResult> GetAll(int page = 1, int pageSize = 10)
+        public async Task<IActionResult> GetAll(
+            int page = 1,
+            int pageSize = 10,
+            string? searchName = null,
+            int? categoryId = null,
+            decimal? minPrice = null,
+            decimal? maxPrice = null)
         {
-            var all = (await _dao.GetAllAsync()).ToList();
-            var totalCount = all.Count;
+            // fetch everything with Category navigation
+            var all = (await _dao.GetAllWithCategoryAsync()).AsQueryable();
+
+            // filter by name
+            if (!string.IsNullOrWhiteSpace(searchName))
+            {
+                all = all.Where(o =>
+                    o.OrchidName!
+                     .Contains(searchName, StringComparison.OrdinalIgnoreCase)
+                );
+            }
+
+            // filter by category
+            if (categoryId.HasValue)
+                all = all.Where(o => o.CategoryId == categoryId);
+
+            // filter by price
+            if (minPrice.HasValue)
+                all = all.Where(o => o.Price >= minPrice.Value);
+            if (maxPrice.HasValue)
+                all = all.Where(o => o.Price <= maxPrice.Value);
+
+            var totalCount = all.Count();
+
             var items = all
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize);
+              .Skip((page - 1) * pageSize)
+              .Take(pageSize)
+              .ToList();
+
             return Ok(new { items, totalCount });
         }
-
 
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)

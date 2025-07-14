@@ -9,6 +9,7 @@ namespace DataAccess.Interfaces
 {
     public interface IOrchidDAO
     {
+        Task<IEnumerable<Orchid>> GetAllWithCategoryAsync();
         Task<IEnumerable<Orchid>> GetAllAsync();
         Task<Orchid?> GetByIdAsync(int id);
         Task<IEnumerable<Orchid>> GetByNameAsync(string name);
@@ -16,5 +17,6 @@ namespace DataAccess.Interfaces
         Task UpdateAsync(Orchid orchid);
         Task DeleteAsync(Orchid orchid);
         Task SaveAsync();
+        Task<Orchid?> GetByIdWithCategoryAsync(int id);
     }
 }

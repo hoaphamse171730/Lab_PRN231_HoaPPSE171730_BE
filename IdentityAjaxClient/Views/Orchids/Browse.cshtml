@@ -1,4 +1,5 @@
-﻿@{
+﻿@using BusinessObjects.Shared
+@{
     ViewData["Title"] = "Orchid Catalog";
 }
 
@@ -14,10 +15,12 @@
         </select>
     </div>
     <div class="col-md-2">
-        <input id="minPrice" type="number" step="0.01" class="form-control" placeholder="Min price" />
+        <input id="minPrice" type="number" step="0.01"
+               class="form-control" placeholder="Min price" />
     </div>
     <div class="col-md-2">
-        <input id="maxPrice" type="number" step="0.01" class="form-control" placeholder="Max price" />
+        <input id="maxPrice" type="number" step="0.01"
+               class="form-control" placeholder="Max price" />
     </div>
     <div class="col-md-1">
         <button id="btnFilter" class="btn btn-primary">Filter</button>
@@ -40,6 +43,7 @@
     </thead>
     <tbody></tbody>
 </table>
+
 <nav>
     <ul class="pagination">
         <li class="page-item" id="prevPage"><button class="page-link">Previous</button></li>
@@ -51,14 +55,32 @@
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        const ROUTES = {
-          orchids: '@BusinessObjects.Shared.ApiRoutes.Orchids'
-        };
-        const pageSize = 2;
-        let currentPage = 1, totalCount = 0;
+        const ROUTES = { orchids: '@ApiRoutes.Orchids', categories: '@ApiRoutes.Categories' };
+        const token  = localStorage.getItem('jwt') || '';
+        $.ajaxSetup({ headers:{ 'Authorization':'Bearer '+token } });
+
+        const pageSize     = 10;
+        let currentPage    = 1,
+            totalCount     = 0,
+            searchName     = '',
+            categoryId     = '',
+            minPrice       = '',
+            maxPrice       = '';
+
+        function buildQuery(page) {
+          const q = [
+            `page=${page}`,
+            `pageSize=${pageSize}`,
+            searchName    && `searchName=${encodeURIComponent(searchName)}`,
+            categoryId    && `categoryId=${encodeURIComponent(categoryId)}`,
+            minPrice      && `minPrice=${encodeURIComponent(minPrice)}`,
+            maxPrice      && `maxPrice=${encodeURIComponent(maxPrice)}`
+          ].filter(Boolean);
+          return q.join('&');
+        }
 
         function loadPage(page) {
-          $.get(`${ROUTES.orchids}?page=${page}&pageSize=${pageSize}`, resp => {
+          $.get(`${ROUTES.orchids}?${buildQuery(page)}`, resp => {
             const { items, totalCount: tot } = resp;
             totalCount = tot;
             renderTable(items);
@@ -68,11 +90,27 @@
 
         function renderTable(list) {
           const rows = list.map(o => `
-            <tr>
+            <tr data-id="${o.orchidId}" data-price="${o.price}">
               <td>${o.orchidId}</td>
               <td>${o.orchidName}</td>
               <td>${o.price.toFixed(2)}</td>
-              <!-- … etc … -->
+              <td>${o.isNatural ? 'Yes' : 'No'}</td>
+              <td>${o.category?.categoryName || '—'}</td>
+              <td>${o.orchidUrl
+                   ? `<img src="${o.orchidUrl}" style="max-height:60px;" />`
+                   : '—'}</td>
+              <td>
+                <input type="number" class="form-control form-control-sm qty"
+                       value="1" min="1" />
+              </td>
+              <td class="subcell">${o.price.toFixed(2)}</td>
+              <td>
+                <a href="/Orchids/Details/${o.orchidId}"
+                   class="btn btn-sm btn-info me-1">Details</a>
+                <button class="btn btn-sm btn-primary add-cart">
+                  Add to Cart
+                </button>
+              </td>
             </tr>`).join('');
           $('#tblCatalog tbody').html(rows);
         }
@@ -84,19 +122,52 @@
           $('#nextPage').toggleClass('disabled', currentPage >= totalPages);
         }
 
-        $('#prevPage').click(() => {
-          if (currentPage > 1) {
-            loadPage(--currentPage);
-          }
-        });
-        $('#nextPage').click(() => {
-          if (currentPage * pageSize < totalCount) {
-            loadPage(++currentPage);
-          }
+        $('#prevPage').click(()=>{ if(currentPage>1) loadPage(--currentPage); });
+        $('#nextPage').click(()=>{
+          if(currentPage*pageSize<totalCount) loadPage(++currentPage);
         });
 
-        // Init
-        $(function(){
+        $('#btnFilter').click(()=>{
+          searchName  = $('#searchName').val().trim();
+          categoryId  = $('#filterCategory').val();
+          minPrice    = $('#minPrice').val();
+          maxPrice    = $('#maxPrice').val();
+          currentPage = 1;
+          loadPage(1);
+        });
+
+        // qty → subtotal
+        $(document).on('input','.qty',function(){
+          const $r   = $(this).closest('tr'),
+                qty = parseInt(this.value)||1,
+                pri = +$r.data('price');
+          $r.find('.subcell').text((qty*pri).toFixed(2));
+        });
+
+        // add to cart
+        $(document).on('click','.add-cart',function(){
+          const $r    = $(this).closest('tr'),
+                id    = +$r.data('id'),
+                name  = $r.find('td').eq(1).text(),
+                pri   = +$r.data('price'),
+                qty   = +$r.find('.qty').val()||1,
+                cart  = JSON.parse(localStorage.getItem('cart')||'[]'),
+                item  = cart.find(i=>i.id===id);
+          if(item) item.quantity += qty;
+          else cart.push({ id, name, price: pri, quantity: qty });
+          localStorage.setItem('cart', JSON.stringify(cart));
+          alert(`Added ${qty}× ${name}`);
+        });
+
+        // Initial load: unwrap resp.items here, too
+        $(async function(){
+          await $.get(ROUTES.categories, resp => {
+            const data = resp.items;
+            const opts = ['<option value="">All categories</option>']
+              .concat(data.map(c=>
+                `<option value="${c.categoryId}">${c.categoryName}</option>`));
+            $('#filterCategory').html(opts.join(''));
+          });
           loadPage(1);
         });
     </script>

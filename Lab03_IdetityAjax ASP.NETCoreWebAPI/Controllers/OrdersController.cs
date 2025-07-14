@@ -3,8 +3,10 @@ using BusinessObjects.Entities;
 using BusinessObjects.Models.Orders;
 using BusinessObjects.Shared;
 using DataAccess.Interfaces;
+using Lab03_IdetityAjax_ASP.NETCoreWebAPI.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
 {
@@ -15,15 +17,17 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
         private readonly IOrderDAO _orderDao;
         private readonly IOrderDetailDAO _detailDao;
         private readonly IOrchidDAO _orchidDao;
+        private readonly IHubContext<OrderNotificationHub> _hub;
 
         public OrdersController(
             IOrderDAO orderDao,
             IOrderDetailDAO detailDao,
-            IOrchidDAO orchidDao)
+            IOrchidDAO orchidDao, IHubContext<OrderNotificationHub> hub)
         {
             _orderDao = orderDao;
             _detailDao = detailDao;
             _orchidDao = orchidDao;
+            _hub = hub;
         }
 
         // GET /api/Orders
@@ -135,6 +139,15 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
             order.OrderStatus = req.Status;
             await _orderDao.UpdateAsync(order);
             await _orderDao.SaveAsync();
+
+            var groupName = $"user-{order.AccountId}";
+            await _hub.Clients
+                      .Group(groupName)
+                      .SendAsync("OrderStatusUpdated", new
+                      {
+                          orderId = order.Id,
+                          status = order.OrderStatus
+                      });
 
             return NoContent();
         }

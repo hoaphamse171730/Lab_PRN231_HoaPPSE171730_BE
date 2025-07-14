@@ -77,6 +77,8 @@
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
+
     <script>
         // On every page load, adjust navbar links based on JWT+role in localStorage
         $(function(){
@@ -104,6 +106,24 @@
             localStorage.removeItem('role');
             location.href = '/';
           });
+            const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/hubs/orders", {
+              accessTokenFactory: () => localStorage.getItem('jwt') || ''
+            })
+            .withAutomaticReconnect()
+            .build();
+
+            connection.on("OrderStatusUpdated", msg => {
+              // msg.orderId, msg.status
+              alert(`Your order #${msg.orderId} is now ${msg.status}.`);
+              // optionally, refresh the list:
+              if (typeof loadPage === 'function') {
+                loadPage(currentPage || 1);
+              }
+            });
+            connection.start()
+            .catch(err => console.error("SignalR error:", err));
+
         });
     </script>
 
