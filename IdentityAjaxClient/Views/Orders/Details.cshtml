@@ -1,0 +1,59 @@
+﻿@model int
+
+@{
+    ViewData["Title"] = "Order Details";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<div class="mb-4">
+    <p><strong>Order #:</strong> @Model</p>
+    <p><strong>Date:</strong> <span id="odDate">…</span></p>
+    <p><strong>Status:</strong> <span id="odStatus">…</span></p>
+    <p><strong>Total:</strong> $<span id="odTotal">…</span></p>
+</div>
+
+<table id="tblDetails" class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Orchid</th>
+            <th>Unit Price</th>
+            <th>Quantity</th>
+            <th>Subtotal</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        (async function(){
+          const id    = @Model;
+          const ROUTES= { orders: '@BusinessObjects.Shared.ApiRoutes.Orders' };
+          const token = localStorage.getItem('jwt') || '';
+
+          const resp = await fetch(`${ROUTES.orders}/${id}`, {
+            headers: { 'Authorization': 'Bearer ' + token }
+          });
+          if (!resp.ok) {
+            return $('body').prepend(
+              `<div class="alert alert-danger">Error ${resp.status}</div>`
+            );
+          }
+          const o = await resp.json();
+          $('#odDate').text(new Date(o.orderDate).toLocaleString());
+          $('#odStatus').text(o.orderStatus);
+          $('#odTotal').text(o.totalAmount.toFixed(2));
+
+          const rows = o.orderDetails.map(d => `
+            <tr>
+              <td>${d.orchid.orchidName}</td>
+              <td>$${d.price.toFixed(2)}</td>
+              <td>${d.quantity}</td>
+              <td>$${(d.price * d.quantity).toFixed(2)}</td>
+            </tr>`).join('');
+          $('#tblDetails tbody').html(rows);
+        })();
+    </script>
+}

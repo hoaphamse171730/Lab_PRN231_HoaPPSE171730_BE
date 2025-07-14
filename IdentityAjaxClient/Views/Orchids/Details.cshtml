@@ -1,108 +1,79 @@
-﻿@{
-    ViewData["Title"] = "Your Cart";
+﻿@model int
+@{
+    ViewData["Title"] = "Orchid Details";
 }
 
 <h2>@ViewData["Title"]</h2>
 
-<table id="tblCart" class="table table-bordered">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Price</th>
-            <th>Qty</th>
-            <th>Subtotal</th>
-            <th>Remove</th>
-        </tr>
-    </thead>
-    <tbody></tbody>
-    <tfoot>
-        <tr>
-            <td colspan="3" class="text-end"><strong>Total:</strong></td>
-            <td id="cartTotal"></td>
-            <td></td>
-        </tr>
-    </tfoot>
-</table>
-
-<button id="btnPlaceOrder" class="btn btn-success">Place Order</button>
+<div id="detailsContainer" class="row">
+    <div class="col-12 text-center">
+        <div class="spinner-border" role="status"><span class="visually-hidden">Loading…</span></div>
+    </div>
+</div>
 
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        const ROUTES = {
-          placeOrder: '@BusinessObjects.Shared.ApiRoutes.PlaceOrder'
-        };
-        const token = localStorage.getItem('jwt') || '';
+        (async function(){
+          const id    = @Model;
+          const ROUTES= { orchid: '@BusinessObjects.Shared.ApiRoutes.Orchids' };
+          const token = localStorage.getItem('jwt') || '';
 
-        let cart = JSON.parse(localStorage.getItem('cart') || '[]');
-
-        function renderCart() {
-          let total = 0;
-          const rows = cart.map((item, idx) => {
-            const sub = item.price * item.quantity;
-            total += sub;
-            return `
-              <tr data-idx="${idx}">
-                <td>${item.name}</td>
-                <td>${item.price.toFixed(2)}</td>
-                <td>
-                  <input type="number" class="form-control form-control-sm qty-cart"
-                         value="${item.quantity}" min="1" />
-                </td>
-                <td>${sub.toFixed(2)}</td>
-                <td>
-                  <button class="btn btn-sm btn-danger btn-remove">X</button>
-                </td>
-              </tr>`;
-          }).join('');
-          $('#tblCart tbody').html(rows);
-          $('#cartTotal').text(total.toFixed(2));
-        }
-
-        // Qty change in cart
-        $(document).on('input', '.qty-cart', function(){
-          const idx = $(this).closest('tr').data('idx');
-          cart[idx].quantity = parseInt(this.value) || 1;
-          localStorage.setItem('cart', JSON.stringify(cart));
-          renderCart();
-        });
-
-        // Remove
-        $(document).on('click', '.btn-remove', function(){
-          const idx = $(this).closest('tr').data('idx');
-          cart.splice(idx, 1);
-          localStorage.setItem('cart', JSON.stringify(cart));
-          renderCart();
-        });
-
-        // Place order
-        $('#btnPlaceOrder').click(async function(){
-          if (!cart.length) return alert('Your cart is empty.');
-          const req = { items: cart.map(c => ({ orchidId: c.id, quantity: c.quantity })) };
           try {
-            const resp = await fetch(ROUTES.placeOrder, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token
-              },
-              body: JSON.stringify(req)
+            const resp = await fetch(`${ROUTES.orchid}/${id}`, {
+              headers: token ? { 'Authorization':'Bearer '+token } : {}
             });
             if (!resp.ok) {
-              const err = await resp.text();
-              return alert('Failed to place order: ' + err);
+              $('#detailsContainer').html(`<div class="alert alert-danger">Error ${resp.status}</div>`);
+              return;
             }
-            alert('Order placed!');
-            cart = [];
-            localStorage.removeItem('cart');
-            renderCart();
-          } catch (ex) {
-            alert('Error: ' + ex);
-          }
-        });
+            const o = await resp.json();
+            $('#detailsContainer').html(`
+              <div class="col-md-6 text-center">
+                <img src="${o.orchidUrl||'/images/placeholder.png'}"
+                     class="img-fluid rounded mb-3" alt="${o.orchidName}" />
+              </div>
+              <div class="col-md-6">
+                <h3>${o.orchidName}</h3>
+                <p><strong>Category:</strong> ${o.category?.categoryName||'—'}</p>
+                <p><strong>Unit Price:</strong> $${o.price.toFixed(2)}</p>
+                <p>${o.orchidDescription||''}</p>
+                <div class="input-group mb-3" style="max-width:160px;">
+                  <span class="input-group-text">Qty</span>
+                  <input type="number" id="detailQty" class="form-control" value="1" min="1" />
+                </div>
+                <p><strong>Total:</strong> $<span id="detailTotal">${o.price.toFixed(2)}</span></p>
+                <button id="btnAddToCart" class="btn btn-primary me-2">Add to Cart</button>
+                <a asp-controller="Orchids" asp-action="Browse" class="btn btn-link">Back to Catalog</a>
+              </div>
+            `);
 
-        $(function(){
-          renderCart();
-        });
+            // recalc total on qty change
+            $('#detailQty').on('input', function(){
+              const qty = parseInt(this.value) || 1;
+              $('#detailTotal').text((o.price * qty).toFixed(2));
+            });
+
+            // add to cart
+            $('#btnAddToCart').click(function(){
+              const qty = parseInt($('#detailQty').val()) || 1;
+              const cart = JSON.parse(localStorage.getItem('cart')||'[]');
+              const existing = cart.find(i=>i.id===o.orchidId);
+              if (existing) existing.quantity += qty;
+              else cart.push({
+                id: o.orchidId,
+                name: o.orchidName,
+                price: o.price,
+                quantity: qty
+              });
+              localStorage.setItem('cart', JSON.stringify(cart));
+              alert(`Added ${qty} × ${o.orchidName} to cart (Total: $${(o.price*qty).toFixed(2)})`);
+            });
+          }
+          catch(err) {
+            $('#detailsContainer').html(`<div class="alert alert-danger">Error loading.</div>`);
+            console.error(err);
+          }
+        })();
     </script>
 }

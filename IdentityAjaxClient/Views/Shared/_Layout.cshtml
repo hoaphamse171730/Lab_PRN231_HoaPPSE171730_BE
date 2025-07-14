@@ -49,6 +49,11 @@
                     <li class="nav-item" id="navCart">
                         <a class="nav-link" asp-controller="Orders" asp-action="Cart">Cart</a>
                     </li>
+                    <li class="nav-item" id="navMyOrders">
+                        <a class="nav-link" asp-controller="Orders" asp-action="History">
+                            My Orders
+                        </a>
+                    </li>
 
                 </ul>
                 <ul class="navbar-nav">
@@ -91,6 +96,7 @@
             $('#navChangePassword').toggle(!!token);
             $('#navCategoriesMgmt').toggle(role === 'Staff');
             $('#navCart').toggle(localStorage.getItem('role') === 'Customer');
+            $('#navMyOrders').toggle(localStorage.getItem('role') === 'Customer');
 
           $('#logoutLink').click(e => {
             e.preventDefault();

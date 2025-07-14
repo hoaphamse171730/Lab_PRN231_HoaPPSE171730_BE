@@ -1,11 +1,11 @@
-﻿using BusinessObjects.Entities;
+﻿// DataAccess/Services/OrderDAO.cs
+using BusinessObjects.Entities;
 using DataAccess.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Repositories.Interfaces;
 using Repositories.Repositories;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace DataAccess.Services
@@ -20,6 +20,7 @@ namespace DataAccess.Services
             _uow = uow;
             _repo = _uow.GetRepository<Order>();
         }
+        public IQueryable<Order> Entities => _repo.Entities;
 
         public async Task<IEnumerable<Order>> GetAllAsync() =>
             await _repo.Entities
@@ -33,22 +34,22 @@ namespace DataAccess.Services
                        .Include(o => o.OrderDetails)
                        .FirstOrDefaultAsync(o => o.Id == id);
 
-        public async Task InsertAsync(Order order) =>
-            await _repo.InsertAsync(order);
+        public Task InsertAsync(Order order) => _repo.InsertAsync(order);
+        public Task UpdateAsync(Order order) { _repo.Update(order); return Task.CompletedTask; }
+        public Task DeleteAsync(Order order) { _repo.Delete(order); return Task.CompletedTask; }
+        public Task SaveAsync() => _uow.SaveAsync();
+        public async Task<IEnumerable<Order>> GetAllWithDetailsAsync() =>
+            await _repo.Entities
+                       .Include(o => o.OrderDetails)
+                         .ThenInclude(d => d.Orchid)
+                       .Include(o => o.Account)
+                       .ToListAsync();
 
-        public Task UpdateAsync(Order order)
-        {
-            _repo.Update(order);
-            return Task.CompletedTask;
-        }
-
-        public Task DeleteAsync(Order order)
-        {
-            _repo.Delete(order);
-            return Task.CompletedTask;
-        }
-
-        public async Task SaveAsync() =>
-            await _uow.SaveAsync();
+        public async Task<Order?> GetByIdWithDetailsAsync(int id) =>
+            await _repo.Entities
+                       .Include(o => o.OrderDetails)
+                         .ThenInclude(d => d.Orchid)
+                       .Include(o => o.Account)
+                       .FirstOrDefaultAsync(o => o.Id == id);
     }
 }

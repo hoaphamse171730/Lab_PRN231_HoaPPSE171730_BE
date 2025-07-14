@@ -1,9 +1,9 @@
-﻿using BusinessObjects.Entities;
+﻿// Lab03_IdetityAjax_ASP.NETCoreWebAPI/Controllers/OrdersController.cs
+using BusinessObjects.Entities;
 using BusinessObjects.Models.Accounts;
 using BusinessObjects.Shared;
 using DataAccess.Interfaces;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
@@ -26,30 +26,38 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
             _orchidDao = orchidDao;
         }
 
-        // Staff can list all orders if you want:
-        [HttpGet, Authorize(Roles = "Staff")]
-        public async Task<IActionResult> GetAll() =>
-            Ok(await _orderDao.GetAllAsync());
+        // GET /api/Orders
+        [HttpGet, Authorize]
+        public async Task<IActionResult> GetAll()
+        {
+            var userId = User.GetAccountId();
+            var orders = User.IsInRole("Staff")
+                ? await _orderDao.GetAllWithDetailsAsync()
+                : (await _orderDao.GetAllWithDetailsAsync())
+                    .Where(o => o.AccountId == userId);
 
-        // Customer places an order
+            return Ok(orders);
+        }
+
+        // POST /api/Orders
         [HttpPost, Authorize(Roles = "Customer")]
         public async Task<IActionResult> PlaceOrder([FromBody] PlaceOrderRequest req)
         {
             if (req.Items == null || !req.Items.Any())
                 return BadRequest("Cart is empty.");
 
-            // 1) Create & save the Order to get its ID
+            // 1) Create & save Order
             var order = new Order
             {
                 AccountId = User.GetAccountId(),
                 OrderDate = DateTime.UtcNow,
                 OrderStatus = "pending",
-                TotalAmount = 0m     // temp, will recalc next
+                TotalAmount = 0m
             };
             await _orderDao.InsertAsync(order);
-            await _orderDao.SaveAsync();  // <-- now order.Id is populated
+            await _orderDao.SaveAsync();  // now order.Id is set
 
-            // 2) Insert each detail
+            // 2) Insert OrderDetails
             decimal runningTotal = 0m;
             foreach (var item in req.Items)
             {
@@ -69,7 +77,7 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
             }
             await _detailDao.SaveAsync();
 
-            // 3) Update the order’s total and save again
+            // 3) Update Order total
             order.TotalAmount = runningTotal;
             await _orderDao.UpdateAsync(order);
             await _orderDao.SaveAsync();
@@ -81,19 +89,16 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
         }
 
 
-        // Customer or Staff can view their order
+        // GET /api/Orders/{id}
         [HttpGet("{id}"), Authorize]
         public async Task<IActionResult> GetById(int id)
         {
-            var order = await _orderDao.GetByIdAsync(id);
+            var userId = User.GetAccountId();
+            var order = await _orderDao.GetByIdWithDetailsAsync(id);
             if (order == null) return NotFound();
-            // optionally restrict to owner if Customer:
-            if (User.IsInRole("Customer") &&
-                order.AccountId != User.GetAccountId())
+            if (User.IsInRole("Customer") && order.AccountId != userId)
                 return Forbid();
-
             return Ok(order);
         }
     }
-
 }
