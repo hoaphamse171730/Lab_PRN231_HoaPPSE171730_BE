@@ -1,16 +1,17 @@
-﻿using Azure.Core;
-using BCrypt.Net;
-using BCrypt.Net;
-using BusinessObjects.Entities;
-using BusinessObjects.Models;
-using BusinessObjects.Models.Accounts;                          // BCrypt.Net.BCrypt
-using BusinessObjects.Shared;
-using DataAccess.Interfaces;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
+﻿using System;
+using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Threading.Tasks;
+using BusinessObjects.Entities;
+using BusinessObjects.Models.Accounts;
+using BusinessObjects.Shared;
+using DataAccess.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
 {
@@ -28,6 +29,7 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
         }
 
         [HttpPost("login")]
+        [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginRequest req)
         {
             var acct = await _accountDao.GetByEmailAsync(req.Email);
@@ -41,11 +43,13 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
             {
                 new Claim(JwtRegisteredClaimNames.Sub,   acct.AccountId.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, acct.Email),
-                new Claim(ClaimTypes.Role,               acct.Role.RoleName)
+                new Claim(ClaimTypes.Role,
+                          ((RoleType)acct.RoleId).ToString())
             };
 
+            // Create JWT
             var key = new SymmetricSecurityKey(
-                              Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
+                            Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             var expires = DateTime.UtcNow.AddHours(2);
 
@@ -57,13 +61,18 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
                 signingCredentials: creds
             );
 
+            var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+
             return Ok(new LoginResponse
             {
-                Token = new JwtSecurityTokenHandler().WriteToken(token),
-                Expires = expires
+                Token = tokenString,
+                Expires = expires,
+                Role = ((RoleType)acct.RoleId).ToString()
             });
         }
+
         [HttpPost("register")]
+        [AllowAnonymous]
         public async Task<IActionResult> Register([FromBody] RegisterRequest req)
         {
             // 1) Passwords match?
@@ -75,7 +84,7 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
             if (existing is not null)
                 return BadRequest("Email is already in use.");
 
-            // 3) Create & hash
+            // 3) Create & hash with BCrypt
             var acct = new Account
             {
                 AccountName = req.AccountName,
@@ -89,8 +98,5 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
 
             return Ok("Registration successful.");
         }
-
-
     }
-
 }

@@ -72,22 +72,18 @@
     </div>
 </div>
 
+
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const ROUTES = {
-          orchids:      '@BusinessObjects.Shared.ApiRoutes.Orchids',
-          categories:   '@BusinessObjects.Shared.ApiRoutes.Categories'
+          orchids:    '@BusinessObjects.Shared.ApiRoutes.Orchids',
+          categories: '@BusinessObjects.Shared.ApiRoutes.Categories'
         };
 
-        // attach JWT if you need it
-        function getCookie(name) {
-          return document.cookie.split('; ')
-            .find(r => r.startsWith(name+'='))
-            ?.split('=')[1];
-        }
-        const token = getCookie('AuthToken');
+        // Grab the token from localStorage
+        const token = localStorage.getItem('jwt') || '';
         $.ajaxSetup({
           headers: { 'Authorization': 'Bearer ' + token }
         });

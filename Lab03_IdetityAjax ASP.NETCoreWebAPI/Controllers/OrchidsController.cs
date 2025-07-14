@@ -1,10 +1,14 @@
 ﻿using BusinessObjects.Entities;
+using BusinessObjects.Shared;
 using DataAccess.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Reflection.Metadata;
 
 namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
 {
+    [Authorize(Roles = "Staff")]
 
     [ApiController]
     [Route("api/[controller]")]

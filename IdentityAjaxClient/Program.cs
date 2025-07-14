@@ -17,13 +17,18 @@ builder.Services.AddDefaultIdentity<IdentityUser>(opts =>
 
 // 1) Cookie authentication for MVC
 builder.Services
-    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-    {
-        options.LoginPath = "/Account/Login";
-        options.LogoutPath = "/Account/Logout";
-    });
-
+  .AddAuthentication(options =>
+  {
+      options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+      options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+      options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+  })
+  .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, opts =>
+  {
+      opts.LoginPath = "/Account/Login";
+      opts.LogoutPath = "/Account/Logout";
+      // you can tweak Cookie.SameSite, ExpireTimeSpan, etc.
+  });
 // 2) So we can inject IHttpContextAccessor if you need it
 builder.Services.AddHttpContextAccessor();
 
@@ -48,10 +53,6 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
-
-// **Order matters**: authentication first, then authorization
-app.UseAuthentication();
-app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
