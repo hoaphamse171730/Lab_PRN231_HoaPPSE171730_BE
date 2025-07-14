@@ -36,6 +36,8 @@ builder.Services.AddScoped<IAccountDAO, AccountDAO>();
 builder.Services.AddScoped<IOrderDAO, OrderDAO>();
 builder.Services.AddScoped<IOrderDetailDAO, OrderDetailDAO>();
 builder.Services.AddScoped<IRoleDAO, RoleDAO>();
+builder.Services.AddScoped<IStorageService, CloudinaryStorageService>();
+
 builder.Services.AddSignalR();
 
 // 3) JWT Authentication

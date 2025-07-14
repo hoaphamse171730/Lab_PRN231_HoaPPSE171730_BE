@@ -96,5 +96,16 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
             await _dao.SaveAsync();
             return NoContent();
         }
+        [HttpPost("upload"), Authorize(Roles = "Staff")]
+        public async Task<IActionResult> UploadImage(
+            [FromServices] IStorageService storage,
+            IFormFile file)
+        {
+            if (file == null)
+                return BadRequest("No file provided.");
+            var url = await storage.UploadFileAsync(file);
+            return Ok(new { url });
+        }
+
     }
 }
