@@ -12,6 +12,8 @@ namespace IdentityAjaxClient.Controllers
         private readonly IHttpClientFactory _httpFactory;
         public AccountController(IHttpClientFactory httpFactory)
             => _httpFactory = httpFactory;
+        [HttpGet]
+        public IActionResult Register() => View(new RegisterRequest());
 
         [HttpGet]
         public IActionResult Login() => View(new LoginRequest());

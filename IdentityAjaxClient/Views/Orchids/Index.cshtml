@@ -120,7 +120,6 @@
                  </td>
                  <td>
                    <button class="btn btn-sm btn-primary edit" data-id="${o.orchidId}">Edit</button>
-                   <button class="btn btn-sm btn-danger del"  data-id="${o.orchidId}">Delete</button>
                  </td>
                </tr>`);
             $('#tblOrchids tbody').html(rows.join(''));
@@ -173,14 +172,6 @@
               $('#orchidPreview').attr('src', o.orchidUrl || '');
               $('#orchidModal').modal('show');
             });
-          });
-
-          // delete
-          $(document).on('click','.del',function(){
-            if (!confirm('Delete this orchid?')) return;
-            const id = $(this).data('id');
-            $.ajax({ url:`${ROUTES.orchids}/${id}`, type:'DELETE' })
-             .done(loadOrchids);
           });
 
           // save
