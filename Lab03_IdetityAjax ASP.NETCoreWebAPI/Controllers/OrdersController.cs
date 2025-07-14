@@ -27,21 +27,42 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
         }
 
         // GET /api/Orders
-        [HttpGet, Authorize]
-        public async Task<IActionResult> GetAll(int page = 1, int pageSize = 10)
+        public async Task<IActionResult> GetAll(
+            int page = 1,
+            int pageSize = 10,
+            string? status = null,
+            DateTime? from = null,
+            DateTime? to = null)
         {
             var userId = User.GetAccountId();
-            var all = (await (_orderDao.GetAllWithDetailsAsync()))
-                .Where(o => User.IsInRole("Staff") || o.AccountId == userId)
-                .ToList();
+            var all = await _orderDao.GetAllWithDetailsAsync();
 
-            var totalCount = all.Count;
-            var items = all
+            // 1) Role-based filter
+            var filtered = all.Where(o =>
+                User.IsInRole("Staff") ||
+                o.AccountId == userId
+            );
+
+            // 2) Status filter
+            if (!string.IsNullOrEmpty(status))
+                filtered = filtered.Where(o => o.OrderStatus == status);
+
+            // 3) Date range filter
+            if (from.HasValue)
+                filtered = filtered.Where(o => o.OrderDate.Date >= from.Value.Date);
+            if (to.HasValue)
+                filtered = filtered.Where(o => o.OrderDate.Date <= to.Value.Date);
+
+            var list = filtered.ToList();
+            var totalCount = list.Count;
+            var items = list
                 .Skip((page - 1) * pageSize)
-                .Take(pageSize);
+                .Take(pageSize)
+                .ToList();
 
             return Ok(new { items, totalCount });
         }
+
 
         // POST /api/Orders
         [HttpPost, Authorize(Roles = "Customer")]

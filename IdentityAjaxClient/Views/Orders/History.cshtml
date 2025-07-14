@@ -5,6 +5,30 @@
 
 <h2>@ViewData["Title"]</h2>
 
+<div class="row mb-3">
+    <div class="col-md-3">
+        <label class="form-label">From</label>
+        <input id="filterFrom" type="date" class="form-control" />
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">To</label>
+        <input id="filterTo" type="date" class="form-control" />
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Status</label>
+        <select id="filterStatus" class="form-select">
+            <option value="">All statuses</option>
+            <option>@Constants.OrderStatusPending</option>
+            <option>@Constants.OrderStatusProcessing</option>
+            <option>@Constants.OrderStatusCompleted</option>
+            <option>@Constants.OrderStatusCancelled</option>
+        </select>
+    </div>
+    <div class="col-md-2 align-self-end">
+        <button id="btnFilter" class="btn btn-primary">Filter</button>
+    </div>
+</div>
+
 <table id="tblHistory" class="table table-striped">
     <thead>
         <tr>
@@ -42,10 +66,25 @@
         };
 
         const pageSize    = 10;
-        let currentPage   = 1, totalCount = 0;
+        let currentPage   = 1,
+            totalCount    = 0,
+            currentStatus = '',
+            currentFrom   = '',
+            currentTo     = '';
+
+        function buildQuery(page) {
+          const qs = [
+            `page=${page}`,
+            `pageSize=${pageSize}`,
+            currentStatus    && `status=${encodeURIComponent(currentStatus)}`,
+            currentFrom      && `from=${encodeURIComponent(currentFrom)}`,
+            currentTo        && `to=${encodeURIComponent(currentTo)}`
+          ].filter(Boolean);
+          return qs.join('&');
+        }
 
         function loadPage(page) {
-          $.get(`${ROUTES.orders}?page=${page}&pageSize=${pageSize}`, resp => {
+          $.get(`${ROUTES.orders}?${buildQuery(page)}`, resp => {
             const { items, totalCount: tot } = resp;
             totalCount = tot;
             renderTable(items);
@@ -55,33 +94,31 @@
 
         function renderTable(list) {
           const rows = list.map(o => {
-            // Only staff get action buttons
             let btns = '';
-            if (role === 'Staff') {
-              if (o.orderStatus === STATUS.Pending) {
+            if (role==='Staff') {
+              if (o.orderStatus===STATUS.Pending) {
                 btns = `
                   <button class="btn btn-sm btn-success process" data-id="${o.id}">Process</button>
                   <button class="btn btn-sm btn-danger cancel"  data-id="${o.id}">Cancel</button>
                 `;
-              } else if (o.orderStatus === STATUS.Processing) {
+              } else if (o.orderStatus===STATUS.Processing) {
                 btns = `
                   <button class="btn btn-sm btn-primary complete" data-id="${o.id}">Complete</button>
-                  <button class="btn btn-sm btn-danger  cancel"  data-id="${o.id}">Cancel</button>
+                  <button class="btn btn-sm btn-danger  cancel"   data-id="${o.id}">Cancel</button>
                 `;
               }
             }
-
             return `
-              <tr data-id="${o.id}">
-                <td>${o.id}</td>
-                <td>${new Date(o.orderDate).toLocaleString()}</td>
-                <td class="status-cell">${o.orderStatus}</td>
-                <td>$${o.totalAmount.toFixed(2)}</td>
-                <td>
-                  <a href="/Orders/Details/${o.id}" class="btn btn-sm btn-info me-1">Details</a>
-                  ${btns}
-                </td>
-              </tr>`;
+            <tr data-id="${o.id}">
+              <td>${o.id}</td>
+              <td>${new Date(o.orderDate).toLocaleString()}</td>
+              <td class="status-cell">${o.orderStatus}</td>
+              <td>$${o.totalAmount.toFixed(2)}</td>
+              <td>
+                <a href="/Orders/Details/${o.id}" class="btn btn-sm btn-info me-1">Details</a>
+                ${btns}
+              </td>
+            </tr>`;
           }).join('');
           $('#tblHistory tbody').html(rows);
         }
@@ -89,48 +126,54 @@
         function updatePagination() {
           const totalPages = Math.ceil(totalCount / pageSize);
           $('#pageInfo').text(`Page ${currentPage} of ${totalPages}`);
-          $('#prevPage').toggleClass('disabled', currentPage <= 1);
-          $('#nextPage').toggleClass('disabled', currentPage >= totalPages);
+          $('#prevPage').toggleClass('disabled', currentPage<=1);
+          $('#nextPage').toggleClass('disabled', currentPage>=totalPages);
         }
 
         $('#prevPage').click(()=>{ if(currentPage>1) loadPage(--currentPage); });
         $('#nextPage').click(()=>{ if(currentPage*pageSize<totalCount) loadPage(++currentPage); });
 
-        // Shared handler for any status change
-        function changeStatus(id, newStatus, $row) {
+        function changeStatus(id,newStatus,$row) {
           $.ajax({
             url: `${ROUTES.orders}/${id}/status`,
             type: 'PUT',
             contentType: 'application/json',
             data: JSON.stringify({ status: newStatus })
-          }).done(() => {
+          }).done(()=>{
             $row.find('.status-cell').text(newStatus);
-            // remove any process/complete/cancel buttons
             $row.find('.process, .complete, .cancel').remove();
-          }).fail((xhr,_,err) => {
-            alert('Failed to update status: ' + (xhr.responseText||err));
+          }).fail((xhr,_,err)=>{
+            alert('Failed: '+(xhr.responseText||err));
           });
         }
 
-        // Button handlers
-        $(document).on('click', '.process', function(){
-          const id = $(this).data('id'),
-                $row = $(this).closest('tr');
-          changeStatus(id, STATUS.Processing, $row);
+        $(document).on('click','.process', function(){
+          const $r = $(this).closest('tr');
+          changeStatus($r.data('id'), STATUS.Processing, $r);
         });
-        $(document).on('click', '.complete', function(){
-          const id = $(this).data('id'),
-                $row = $(this).closest('tr');
-          changeStatus(id, STATUS.Completed, $row);
+        $(document).on('click','.complete', function(){
+          const $r = $(this).closest('tr');
+          changeStatus($r.data('id'), STATUS.Completed, $r);
         });
-        $(document).on('click', '.cancel', function(){
-          const id = $(this).data('id'),
-                $row = $(this).closest('tr');
-          if (!confirm('Are you sure you want to cancel this order?')) return;
-          changeStatus(id, STATUS.Cancelled, $row);
+        $(document).on('click','.cancel', function(){
+          if(!confirm('Cancel this order?')) return;
+          const $r = $(this).closest('tr');
+          changeStatus($r.data('id'), STATUS.Cancelled, $r);
         });
 
-        // Init
-        $(function(){ loadPage(1); });
+        // Apply calendar filters
+        $('#btnFilter').click(() => {
+          currentStatus = $('#filterStatus').val() || '';
+          currentFrom   = $('#filterFrom').val()   || '';
+          currentTo     = $('#filterTo').val()     || '';
+          currentPage   = 1;
+          loadPage(1);
+        });
+
+        // Initialize
+        $(function(){
+          // default dates empty (all)
+          loadPage(1);
+        });
     </script>
 }
