@@ -12,40 +12,54 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
         private readonly ICategoryDAO _dao;
         public CategoriesController(ICategoryDAO dao) => _dao = dao;
 
-        [HttpGet]
-        public async Task<IActionResult> GetAll() =>
-            Ok(await _dao.GetAllAsync());
+        // GET /api/Categories?page=1&pageSize=10
+        [HttpGet, AllowAnonymous]
+        public async Task<IActionResult> GetAll(int page = 1, int pageSize = 10)
+        {
+            var all = (await _dao.GetAllAsync()).ToList();
+            var totalCount = all.Count;
+            var items = all
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+            return Ok(new { items, totalCount });
+        }
 
+        // GET /api/Categories/{id}
         [HttpGet("{id}")]
-        public async Task<IActionResult> Get(int id)
+        public async Task<IActionResult> GetById(int id)
         {
-            var cat = await _dao.GetByIdAsync(id);
-            return cat is null ? NotFound() : Ok(cat);
+            var c = await _dao.GetByIdAsync(id);
+            if (c == null) return NotFound();
+            return Ok(c);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Create(Category category)
+        // POST /api/Categories  (Staff only)
+        [HttpPost, Authorize(Roles = "Staff")]
+        public async Task<IActionResult> Create([FromBody] Category c)
         {
-            await _dao.InsertAsync(category);
+            await _dao.InsertAsync(c);
             await _dao.SaveAsync();
-            return CreatedAtAction(nameof(Get), new { id = category.CategoryId }, category);
+            return CreatedAtAction(nameof(GetById), new { id = c.CategoryId }, c);
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, Category category)
+        // PUT /api/Categories/{id}  (Staff only)
+        [HttpPut("{id}"), Authorize(Roles = "Staff")]
+        public async Task<IActionResult> Update(int id, [FromBody] Category c)
         {
-            if (id != category.CategoryId) return BadRequest();
-            await _dao.UpdateAsync(category);
+            if (id != c.CategoryId) return BadRequest();
+            await _dao.UpdateAsync(c);
             await _dao.SaveAsync();
             return NoContent();
         }
 
-        [HttpDelete("{id}")]
+        // DELETE /api/Categories/{id}  (Staff only)
+        [HttpDelete("{id}"), Authorize(Roles = "Staff")]
         public async Task<IActionResult> Delete(int id)
         {
-            var cat = await _dao.GetByIdAsync(id);
-            if (cat is null) return NotFound();
-            await _dao.DeleteAsync(cat);
+            var c = await _dao.GetByIdAsync(id);
+            if (c == null) return NotFound();
+            await _dao.DeleteAsync(c);
             await _dao.SaveAsync();
             return NoContent();
         }

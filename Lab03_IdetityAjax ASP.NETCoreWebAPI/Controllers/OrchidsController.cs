@@ -17,8 +17,16 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
         public OrchidsController(IOrchidDAO dao) => _dao = dao;
 
         [HttpGet]
-        public async Task<IActionResult> GetAll() =>
-            Ok(await _dao.GetAllAsync());
+        public async Task<IActionResult> GetAll(int page = 1, int pageSize = 10)
+        {
+            var all = (await _dao.GetAllAsync()).ToList();
+            var totalCount = all.Count;
+            var items = all
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize);
+            return Ok(new { items, totalCount });
+        }
+
 
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)

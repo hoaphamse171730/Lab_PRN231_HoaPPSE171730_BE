@@ -28,15 +28,19 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
 
         // GET /api/Orders
         [HttpGet, Authorize]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll(int page = 1, int pageSize = 10)
         {
             var userId = User.GetAccountId();
-            var orders = User.IsInRole("Staff")
-                ? await _orderDao.GetAllWithDetailsAsync()
-                : (await _orderDao.GetAllWithDetailsAsync())
-                    .Where(o => o.AccountId == userId);
+            var all = (await (_orderDao.GetAllWithDetailsAsync()))
+                .Where(o => User.IsInRole("Staff") || o.AccountId == userId)
+                .ToList();
 
-            return Ok(orders);
+            var totalCount = all.Count;
+            var items = all
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize);
+
+            return Ok(new { items, totalCount });
         }
 
         // POST /api/Orders

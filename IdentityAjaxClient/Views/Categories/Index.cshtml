@@ -4,7 +4,6 @@
 
 <h2>@ViewData["Title"]</h2>
 
-<!-- client‐side guard for non-staff -->
 <script>
     (function() {
       const role = localStorage.getItem('role');
@@ -16,6 +15,7 @@
 </script>
 
 <button id="btnAddCat" class="btn btn-success mb-3">Add Category</button>
+
 <table id="tblCategories" class="table table-striped">
     <thead>
         <tr>
@@ -26,6 +26,14 @@
     </thead>
     <tbody></tbody>
 </table>
+
+<nav>
+    <ul class="pagination">
+        <li class="page-item" id="prevCat"><button class="page-link">Previous</button></li>
+        <li class="page-item disabled"><span class="page-link" id="catPageInfo"></span></li>
+        <li class="page-item" id="nextCat"><button class="page-link">Next</button></li>
+    </ul>
+</nav>
 
 <!-- Modal -->
 <div id="catModal" class="modal fade" tabindex="-1">
@@ -54,55 +62,76 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        const ROUTES = {
-          categories: '@BusinessObjects.Shared.ApiRoutes.Categories'
-        };
-        const token = localStorage.getItem('jwt') || '';
-        $.ajaxSetup({
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
+        const ROUTES   = { categories: '@BusinessObjects.Shared.ApiRoutes.Categories' };
+        const token    = localStorage.getItem('jwt') || '';
+        $.ajaxSetup({ headers: { 'Authorization': 'Bearer ' + token } });
 
-        function loadCategories() {
-          return $.get(ROUTES.categories, data => {
-            const rows = data.map(c =>
-              `<tr>
-                 <td>${c.categoryId}</td>
-                 <td>${c.categoryName}</td>
-                 <td>
-                   <button class="btn btn-sm btn-primary edit" data-id="${c.categoryId}">Edit</button>
-                   <button class="btn btn-sm btn-danger del"  data-id="${c.categoryId}">Delete</button>
-                 </td>
-               </tr>`).join('');
-            $('#tblCategories tbody').html(rows);
+        const catPageSize  = 10;
+        let catCurrent     = 1;
+        let catTotalCount  = 0;
+
+        function loadCatPage(page) {
+          $.get(`${ROUTES.categories}?page=${page}&pageSize=${catPageSize}`, resp => {
+            const { items, totalCount } = resp;
+            catTotalCount = totalCount;
+            renderCats(items);
+            updateCatPagination();
           });
         }
 
-        $(function(){
-          loadCategories();
+        function renderCats(list) {
+          const rows = list.map(c=>`
+            <tr>
+              <td>${c.categoryId}</td>
+              <td>${c.categoryName}</td>
+              <td>
+                <button class="btn btn-sm btn-primary edit" data-id="${c.categoryId}">Edit</button>
+                <button class="btn btn-sm btn-danger del"  data-id="${c.categoryId}">Delete</button>
+              </td>
+            </tr>`).join('');
+          $('#tblCategories tbody').html(rows);
+        }
 
-          $('#btnAddCat').click(()=>{
+        function updateCatPagination() {
+          const totalPages = Math.ceil(catTotalCount / catPageSize);
+          $('#catPageInfo').text(`Page ${catCurrent} of ${totalPages}`);
+          $('#prevCat').toggleClass('disabled', catCurrent <= 1);
+          $('#nextCat').toggleClass('disabled', catCurrent >= totalPages);
+        }
+
+        $('#prevCat').click(() => {
+          if (catCurrent > 1) loadCatPage(--catCurrent);
+        });
+        $('#nextCat').click(() => {
+          if (catCurrent * catPageSize < catTotalCount) loadCatPage(++catCurrent);
+        });
+
+        $(function(){
+          loadCatPage(1);
+
+          $('#btnAddCat').click(() => {
             $('#catId').val(0);
             $('#catName').val('');
             $('#catModal').modal('show');
           });
 
-          $(document).on('click','.edit',function(){
+          $(document).on('click','.edit', function(){
             const id = $(this).data('id');
-            $.get(`${ROUTES.categories}/${id}`, c => {
+            $.get(`${ROUTES.categories}/${id}`, c=> {
               $('#catId').val(c.categoryId);
               $('#catName').val(c.categoryName);
               $('#catModal').modal('show');
             });
           });
 
-          $(document).on('click','.del',function(){
+          $(document).on('click','.del', function(){
             if (!confirm('Delete this category?')) return;
             const id = $(this).data('id');
             $.ajax({ url:`${ROUTES.categories}/${id}`, type:'DELETE' })
-             .done(loadCategories);
+             .done(() => loadCatPage(catCurrent));
           });
 
-          $('#saveCat').click(()=>{
+          $('#saveCat').click(() => {
             const cat = {
               categoryId:   +$('#catId').val(),
               categoryName: $('#catName').val().trim()
@@ -119,9 +148,9 @@
               type: method,
               contentType: 'application/json',
               data: JSON.stringify(cat)
-            }).done(()=>{
+            }).done(() => {
               $('#catModal').modal('hide');
-              loadCategories();
+              loadCatPage(catCurrent);
             });
           });
         });

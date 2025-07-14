@@ -5,6 +5,7 @@
 <h2>@ViewData["Title"]</h2>
 
 <button id="btnAdd" class="btn btn-success mb-3">Add New Orchid</button>
+
 <table id="tblOrchids" class="table table-striped">
     <thead>
         <tr>
@@ -19,6 +20,14 @@
     </thead>
     <tbody></tbody>
 </table>
+
+<nav>
+    <ul class="pagination">
+        <li class="page-item" id="prevPage"><button class="page-link">Previous</button></li>
+        <li class="page-item disabled"><span class="page-link" id="pageInfo"></span></li>
+        <li class="page-item" id="nextPage"><button class="page-link">Next</button></li>
+    </ul>
+</nav>
 
 <!-- Modal -->
 <div id="orchidModal" class="modal fade" tabindex="-1">
@@ -72,7 +81,6 @@
     </div>
 </div>
 
-
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
@@ -82,13 +90,17 @@
           categories: '@BusinessObjects.Shared.ApiRoutes.Categories'
         };
 
-        // Grab the token from localStorage
         const token = localStorage.getItem('jwt') || '';
         $.ajaxSetup({
           headers: { 'Authorization': 'Bearer ' + token }
         });
 
         let categories = [];
+
+        // Pagination state
+        const pageSize    = 10;
+        let currentPage   = 1;
+        let totalCount    = 0;
 
         function loadCategories() {
           return $.get(ROUTES.categories, data => {
@@ -100,27 +112,54 @@
           });
         }
 
-        function loadOrchids() {
-          $.get(ROUTES.orchids, data => {
-            const rows = data.map(o =>
-              `<tr>
-                 <td>${o.orchidId}</td>
-                 <td>${o.orchidName}</td>
-                 <td>${o.price.toFixed(2)}</td>
-                 <td>${o.isNatural}</td>
-                 <td>${o.category?.categoryName ?? '—'}</td>
-                 <td>
-                   ${ o.orchidUrl
-                       ? `<img src="${o.orchidUrl}" style="max-height:60px;" />`
-                       : '—' }
-                 </td>
-                 <td>
-                   <button class="btn btn-sm btn-primary edit" data-id="${o.orchidId}">Edit</button>
-                 </td>
-               </tr>`);
-            $('#tblOrchids tbody').html(rows.join(''));
+        function loadOrchids(page = 1) {
+          $.get(`${ROUTES.orchids}?page=${page}&pageSize=${pageSize}`, resp => {
+            const { items, totalCount: tot } = resp;
+            totalCount = tot;
+            renderTable(items);
+            updatePagination();
           });
         }
+
+        function renderTable(list) {
+          const rows = list.map(o =>
+            `<tr data-id="${o.orchidId}">
+               <td>${o.orchidId}</td>
+               <td>${o.orchidName}</td>
+               <td>${o.price.toFixed(2)}</td>
+               <td>${o.isNatural}</td>
+               <td>${o.category?.categoryName ?? '—'}</td>
+               <td>${
+                 o.orchidUrl
+                   ? `<img src="${o.orchidUrl}" style="max-height:60px;" />`
+                   : '—'
+               }</td>
+               <td>
+                 <button class="btn btn-sm btn-primary edit" data-id="${o.orchidId}">
+                   Edit
+                 </button>
+               </td>
+             </tr>`).join('');
+          $('#tblOrchids tbody').html(rows);
+        }
+
+        function updatePagination() {
+          const totalPages = Math.ceil(totalCount / pageSize);
+          $('#pageInfo').text(`Page ${currentPage} of ${totalPages}`);
+          $('#prevPage').toggleClass('disabled', currentPage <= 1);
+          $('#nextPage').toggleClass('disabled', currentPage >= totalPages);
+        }
+
+        $('#prevPage').click(() => {
+          if (currentPage > 1) {
+            loadOrchids(--currentPage);
+          }
+        });
+        $('#nextPage').click(() => {
+          if (currentPage * pageSize < totalCount) {
+            loadOrchids(++currentPage);
+          }
+        });
 
         // Basic front-end validation
         function validate(o) {
@@ -138,7 +177,7 @@
 
         $(async function(){
           await loadCategories();
-          loadOrchids();
+          loadOrchids(1);
 
           // show new
           $('#btnAdd').click(()=>{
@@ -196,7 +235,7 @@
             })
             .done(() => {
               $('#orchidModal').modal('hide');
-              loadOrchids();
+              loadOrchids(currentPage);
             });
           });
 

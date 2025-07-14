@@ -40,112 +40,64 @@
     </thead>
     <tbody></tbody>
 </table>
+<nav>
+    <ul class="pagination">
+        <li class="page-item" id="prevPage"><button class="page-link">Previous</button></li>
+        <li class="page-item disabled"><span class="page-link" id="pageInfo"></span></li>
+        <li class="page-item" id="nextPage"><button class="page-link">Next</button></li>
+    </ul>
+</nav>
 
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         const ROUTES = {
-          orchids:    '@BusinessObjects.Shared.ApiRoutes.Orchids',
-          categories: '@BusinessObjects.Shared.ApiRoutes.Categories'
+          orchids: '@BusinessObjects.Shared.ApiRoutes.Orchids'
         };
-        $.ajaxSetup({
-          headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('jwt') || '') }
-        });
+        const pageSize = 2;
+        let currentPage = 1, totalCount = 0;
 
-        let allOrchids = [], allCategories = [];
-
-        function loadCategories() {
-          return $.get(ROUTES.categories, data => {
-            allCategories = data;
-            const opts = ['<option value="">All categories</option>']
-              .concat(data.map(c=>`<option value="${c.categoryId}">${c.categoryName}</option>`));
-            $('#filterCategory').html(opts.join(''));
-          });
-        }
-
-        function loadOrchids() {
-          return $.get(ROUTES.orchids, data => {
-            allOrchids = data;
-            renderTable(data);
+        function loadPage(page) {
+          $.get(`${ROUTES.orchids}?page=${page}&pageSize=${pageSize}`, resp => {
+            const { items, totalCount: tot } = resp;
+            totalCount = tot;
+            renderTable(items);
+            updatePagination();
           });
         }
 
         function renderTable(list) {
-          const rows = list.map(o=> {
-            const unit = o.price.toFixed(2);
-            return `
-            <tr data-id="${o.orchidId}" data-price="${o.price}">
+          const rows = list.map(o => `
+            <tr>
               <td>${o.orchidId}</td>
               <td>${o.orchidName}</td>
-              <td>${unit}</td>
-              <td>${o.isNatural ? 'Yes':'No'}</td>
-              <td>${o.category?.categoryName||'—'}</td>
-              <td>${
-                o.orchidUrl
-                 ? `<img src="${o.orchidUrl}" style="max-height:60px;" />`
-                 : '—'
-              }</td>
-              <td>
-                <input type="number" class="form-control form-control-sm qty-input"
-                       value="1" min="1" />
-              </td>
-              <td class="total-cell">${unit}</td>
-              <td>
-                <a href="/Orchids/Details/${o.orchidId}" class="btn btn-sm btn-info me-1">
-                  Details
-                </a>
-                <button class="btn btn-sm btn-primary add-cart">
-                  Add to Cart
-                </button>
-              </td>
-            </tr>`;
-          }).join('');
+              <td>${o.price.toFixed(2)}</td>
+              <!-- … etc … -->
+            </tr>`).join('');
           $('#tblCatalog tbody').html(rows);
         }
 
-        // Update total on qty change
-        $(document).on('input', '.qty-input', function(){
-          const $r = $(this).closest('tr'),
-                qty = parseInt(this.value)||1,
-                price = parseFloat($r.data('price'));
-          $r.find('.total-cell').text((price*qty).toFixed(2));
+        function updatePagination() {
+          const totalPages = Math.ceil(totalCount / pageSize);
+          $('#pageInfo').text(`Page ${currentPage} of ${totalPages}`);
+          $('#prevPage').toggleClass('disabled', currentPage <= 1);
+          $('#nextPage').toggleClass('disabled', currentPage >= totalPages);
+        }
+
+        $('#prevPage').click(() => {
+          if (currentPage > 1) {
+            loadPage(--currentPage);
+          }
         });
-
-        // Add to cart
-        $(document).on('click', '.add-cart', function(){
-          const $r    = $(this).closest('tr'),
-                id    = +$r.data('id'),
-                name  = $r.find('td').eq(1).text(),
-                price = +$r.data('price'),
-                qty   = parseInt($r.find('.qty-input').val())||1,
-                cart  = JSON.parse(localStorage.getItem('cart')||'[]'),
-                item  = cart.find(i=>i.id===id);
-          if (item) item.quantity += qty;
-          else cart.push({ id, name, price, quantity: qty });
-          localStorage.setItem('cart', JSON.stringify(cart));
-          alert(`Added ${qty}× ${name} to cart.`);
-        });
-
-        // Filtering
-        $('#btnFilter').click(()=>{
-          const name     = ($('#searchName').val()||'').toLowerCase(),
-                cat      = $('#filterCategory').val(),
-                minPrice = parseFloat($('#minPrice').val()),
-                maxPrice = parseFloat($('#maxPrice').val());
-
-          const filtered = allOrchids.filter(o=>{
-            const price = o.price;
-            const byName = !name || o.orchidName.toLowerCase().includes(name);
-            const byCat  = !cat  || o.categoryId == cat;
-            const byMin  = isNaN(minPrice) || price >= minPrice;
-            const byMax  = isNaN(maxPrice) || price <= maxPrice;
-            return byName && byCat && byMin && byMax;
-          });
-
-          renderTable(filtered);
+        $('#nextPage').click(() => {
+          if (currentPage * pageSize < totalCount) {
+            loadPage(++currentPage);
+          }
         });
 
         // Init
-        $(async ()=>{ await loadCategories(); await loadOrchids(); });
+        $(function(){
+          loadPage(1);
+        });
     </script>
 }

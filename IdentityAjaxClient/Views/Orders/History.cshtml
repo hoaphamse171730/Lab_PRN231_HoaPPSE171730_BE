@@ -17,6 +17,14 @@
     <tbody></tbody>
 </table>
 
+<nav>
+    <ul class="pagination">
+        <li class="page-item" id="prevPage"><button class="page-link">Previous</button></li>
+        <li class="page-item disabled"><span class="page-link" id="pageInfo"></span></li>
+        <li class="page-item" id="nextPage"><button class="page-link">Next</button></li>
+    </ul>
+</nav>
+
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
@@ -24,9 +32,21 @@
         const token  = localStorage.getItem('jwt') || '';
         $.ajaxSetup({ headers: { 'Authorization': 'Bearer ' + token } });
 
-        // Load and render
-        $.get(ROUTES.orders, data => {
-          const rows = data.map(o => `
+        const pageSize    = 10;
+        let currentPage   = 1;
+        let totalCount    = 0;
+
+        function loadPage(page) {
+          $.get(`${ROUTES.orders}?page=${page}&pageSize=${pageSize}`, resp => {
+            const { items, totalCount: tot } = resp;
+            totalCount = tot;
+            renderTable(items);
+            updatePagination();
+          });
+        }
+
+        function renderTable(list) {
+          const rows = list.map(o => `
             <tr>
               <td>${o.id}</td>
               <td>${new Date(o.orderDate).toLocaleString()}</td>
@@ -40,6 +60,28 @@
               </td>
             </tr>`).join('');
           $('#tblHistory tbody').html(rows);
+        }
+
+        function updatePagination() {
+          const totalPages = Math.ceil(totalCount / pageSize);
+          $('#pageInfo').text(`Page ${currentPage} of ${totalPages}`);
+          $('#prevPage').toggleClass('disabled', currentPage <= 1);
+          $('#nextPage').toggleClass('disabled', currentPage >= totalPages);
+        }
+
+        $('#prevPage').click(() => {
+          if (currentPage > 1) {
+            loadPage(--currentPage);
+          }
+        });
+        $('#nextPage').click(() => {
+          if (currentPage * pageSize < totalCount) {
+            loadPage(++currentPage);
+          }
+        });
+
+        $(function(){
+          loadPage(1);
         });
     </script>
 }
