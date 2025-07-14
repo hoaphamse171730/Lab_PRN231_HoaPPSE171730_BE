@@ -6,29 +6,27 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Repositories.Interfaces;
 using Repositories.Repositories;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. JSON options (prevent cycles)
+// 1) JSON & Swagger
 builder.Services.AddControllers()
     .AddJsonOptions(opts =>
     {
         opts.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         opts.JsonSerializerOptions.MaxDepth = 64;
     });
-
-// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// 2. EF Core + DbContext
+// 2) EF Core & DAOs
 builder.Services.AddDbContext<MyDbContext>(opts =>
     opts.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<DbContext, MyDbContext>();
-
-// 3. UOW, GenericRepo, DAOs
 builder.Services.AddScoped<IUOW, UOW>();
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IOrchidDAO, OrchidDAO>();
@@ -38,7 +36,7 @@ builder.Services.AddScoped<IOrderDAO, OrderDAO>();
 builder.Services.AddScoped<IOrderDetailDAO, OrderDetailDAO>();
 builder.Services.AddScoped<IRoleDAO, RoleDAO>();
 
-// 4. JWT Authentication & Authorization
+// 3) JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"]!;
 var jwtIssuer = builder.Configuration["Jwt:Issuer"]!;
 var jwtAud = builder.Configuration["Jwt:Audience"]!;
@@ -63,17 +61,15 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero,
-
-        // Make sure your Role claim is picked up correctly:
-        NameClaimType = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
-        RoleClaimType = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+        NameClaimType = ClaimTypes.NameIdentifier,
+        RoleClaimType = ClaimTypes.Role
     };
 });
 
-// Must call AddAuthorization after AddAuthentication
+// 4) Authorization — you must call this so that [Authorize] attributes are respected
 builder.Services.AddAuthorization();
 
-// 5. CORS (allow AJAX from your client)
+// 5) CORS
 builder.Services.AddCors(opts =>
     opts.AddPolicy("AllowAll", p =>
         p.AllowAnyOrigin()
@@ -82,21 +78,21 @@ builder.Services.AddCors(opts =>
 
 var app = builder.Build();
 
-// 6. Middleware pipeline
+// 6) Middleware pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
+app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 
-app.UseHttpsRedirection();
-
-// **Critical**: Authentication **before** Authorization
+// **CRITICAL**: you must authenticate **before** authorizing
 app.UseAuthentication();
 app.UseAuthorization();
 
+// 7) Map your controllers (including AuthController with its /me endpoint)
 app.MapControllers();
 
 app.Run();

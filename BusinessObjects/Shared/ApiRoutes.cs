@@ -16,5 +16,7 @@ namespace BusinessObjects.Shared
         public static string Roles => $"{Constants.ApiBaseUrl}/api/Roles";
         public static string AuthRegister => $"{Constants.ApiBaseUrl}/api/Auth/register";
         public static string AuthLogin => $"{Constants.ApiBaseUrl}/api/Auth/login";
+        public static string AuthMe => $"{Constants.ApiBaseUrl}/api/Auth/me";
+
     }
 }

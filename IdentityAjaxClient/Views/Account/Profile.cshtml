@@ -1,0 +1,63 @@
+﻿@{
+    ViewData["Title"] = "Your Profile";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<form id="profileForm" class="mb-4">
+    <div class="mb-3">
+        <label for="accountName" class="form-label">Name</label>
+        <input id="accountName" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label for="email" class="form-label">Email (read-only)</label>
+        <input id="email" class="form-control" readonly />
+    </div>
+    <div class="mb-3">
+        <label for="role" class="form-label">Role</label>
+        <input id="role" class="form-control" readonly />
+    </div>
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+</form>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        const ROUTES = {
+          me: '@BusinessObjects.Shared.ApiRoutes.AuthMe'
+        };
+        const token = localStorage.getItem('jwt') || '';
+
+        // load profile on page load
+        $(async function(){
+          const resp = await fetch(ROUTES.me, {
+            headers: { 'Authorization': 'Bearer ' + token }
+          });
+          if (!resp.ok) return alert('Cannot load profile');
+          const data = await resp.json();
+          $('#accountName').val(data.accountName);
+          $('#email').val(data.email);
+          $('#role').val(data.role);
+        });
+
+        // handle save
+        $('#profileForm').submit(async function(e){
+          e.preventDefault();
+          const req = { accountName: $('#accountName').val() };
+
+          const resp = await fetch(ROUTES.me, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify(req)
+          });
+          if (!resp.ok) {
+            const err = await resp.text();
+            return alert('Update failed: ' + err);
+          }
+          alert('Profile updated successfully');
+        });
+    </script>
+}

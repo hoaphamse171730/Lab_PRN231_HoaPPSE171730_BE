@@ -12,9 +12,8 @@ namespace BusinessObjects.Shared
     {
         public static int GetAccountId(this ClaimsPrincipal user)
         {
-            // JWT sub claim holds your AccountId
-            var sub = user.FindFirstValue(JwtRegisteredClaimNames.Sub);
-            return int.TryParse(sub, out var id) ? id : 0;
+            var idStr = user.FindFirstValue(ClaimTypes.NameIdentifier);
+            return int.TryParse(idStr, out var id) ? id : 0;
         }
 
         public static string? GetEmail(this ClaimsPrincipal user) =>

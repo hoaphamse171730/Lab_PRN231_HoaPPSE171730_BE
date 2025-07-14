@@ -98,5 +98,39 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
 
             return Ok("Registration successful.");
         }
+
+        [HttpGet("me")]
+        [Authorize]
+        public async Task<IActionResult> Me()
+        {
+            var id = User.GetAccountId();
+            var acct = await _accountDao.GetByIdAsync(id);
+            if (acct == null) return NotFound();
+
+            return Ok(new ProfileResponse
+            {
+                AccountId = acct.AccountId,
+                AccountName = acct.AccountName,
+                Email = acct.Email,
+                Role = ((RoleType)acct.RoleId).ToString()
+            });
+        }
+
+        [HttpPut("me")]
+        [Authorize]
+        public async Task<IActionResult> UpdateMe([FromBody] UpdateProfileRequest req)
+        {
+            var id = User.GetAccountId();
+            var acct = await _accountDao.GetByIdAsync(id);
+            if (acct == null) return NotFound();
+
+            acct.AccountName = req.AccountName;
+            await _accountDao.UpdateAsync(acct);
+            await _accountDao.SaveAsync();
+
+            return NoContent();
+        }
+
+
     }
 }
