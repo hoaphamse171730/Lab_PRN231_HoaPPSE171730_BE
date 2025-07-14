@@ -4,6 +4,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
+using BCrypt.Net;
 using BusinessObjects.Entities;
 using BusinessObjects.Models.Accounts;
 using BusinessObjects.Shared;
@@ -131,6 +132,30 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
             return NoContent();
         }
 
+        [HttpPost("change-password")]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest req)
+        {
+            // 1) new matches confirm?
+            if (req.NewPassword != req.ConfirmNewPassword)
+                return BadRequest("New passwords do not match.");
+
+            // 2) load user
+            var userId = User.GetAccountId();
+            var acct = await _accountDao.GetByIdAsync(userId);
+            if (acct == null) return NotFound();
+
+            // 3) verify current
+            if (!BCrypt.Net.BCrypt.Verify(req.CurrentPassword, acct.Password))
+                return BadRequest("Current password is incorrect.");
+
+            // 4) hash & save
+            acct.Password = BCrypt.Net.BCrypt.HashPassword(req.NewPassword);
+            await _accountDao.UpdateAsync(acct);
+            await _accountDao.SaveAsync();
+
+            return NoContent();
+        }
 
     }
 }

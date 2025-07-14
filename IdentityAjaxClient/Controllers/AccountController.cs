@@ -17,6 +17,8 @@ namespace IdentityAjaxClient.Controllers
         public IActionResult Register() => View(new RegisterRequest());
         [HttpGet]
         public IActionResult Profile() => View();
+        [HttpGet]
+        public IActionResult ChangePassword() => View();
 
         // POST /Account/Register (traditional server-side)
         [HttpPost]
