@@ -1,0 +1,129 @@
+﻿@{
+    ViewData["Title"] = "Manage Categories";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<!-- client‐side guard for non-staff -->
+<script>
+    (function() {
+      const role = localStorage.getItem('role');
+      if (role !== 'Staff') {
+        alert('Access denied');
+        window.location = '/';
+      }
+    })();
+</script>
+
+<button id="btnAddCat" class="btn btn-success mb-3">Add Category</button>
+<table id="tblCategories" class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<!-- Modal -->
+<div id="catModal" class="modal fade" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content p-3">
+            <div class="modal-header">
+                <h5 class="modal-title">Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="catId" />
+                <div class="mb-3">
+                    <label class="form-label">Name <span class="text-danger">*</span></label>
+                    <input id="catName" class="form-control" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="saveCat" class="btn btn-primary">Save</button>
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const ROUTES = {
+          categories: '@BusinessObjects.Shared.ApiRoutes.Categories'
+        };
+        const token = localStorage.getItem('jwt') || '';
+        $.ajaxSetup({
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+
+        function loadCategories() {
+          return $.get(ROUTES.categories, data => {
+            const rows = data.map(c =>
+              `<tr>
+                 <td>${c.categoryId}</td>
+                 <td>${c.categoryName}</td>
+                 <td>
+                   <button class="btn btn-sm btn-primary edit" data-id="${c.categoryId}">Edit</button>
+                   <button class="btn btn-sm btn-danger del"  data-id="${c.categoryId}">Delete</button>
+                 </td>
+               </tr>`).join('');
+            $('#tblCategories tbody').html(rows);
+          });
+        }
+
+        $(function(){
+          loadCategories();
+
+          $('#btnAddCat').click(()=>{
+            $('#catId').val(0);
+            $('#catName').val('');
+            $('#catModal').modal('show');
+          });
+
+          $(document).on('click','.edit',function(){
+            const id = $(this).data('id');
+            $.get(`${ROUTES.categories}/${id}`, c => {
+              $('#catId').val(c.categoryId);
+              $('#catName').val(c.categoryName);
+              $('#catModal').modal('show');
+            });
+          });
+
+          $(document).on('click','.del',function(){
+            if (!confirm('Delete this category?')) return;
+            const id = $(this).data('id');
+            $.ajax({ url:`${ROUTES.categories}/${id}`, type:'DELETE' })
+             .done(loadCategories);
+          });
+
+          $('#saveCat').click(()=>{
+            const cat = {
+              categoryId:   +$('#catId').val(),
+              categoryName: $('#catName').val().trim()
+            };
+            if (!cat.categoryName) {
+              return alert('Name is required.');
+            }
+            const method = cat.categoryId === 0 ? 'POST' : 'PUT';
+            const url    = cat.categoryId === 0
+                           ? ROUTES.categories
+                           : `${ROUTES.categories}/${cat.categoryId}`;
+            $.ajax({
+              url,
+              type: method,
+              contentType: 'application/json',
+              data: JSON.stringify(cat)
+            }).done(()=>{
+              $('#catModal').modal('hide');
+              loadCategories();
+            });
+          });
+        });
+    </script>
+}

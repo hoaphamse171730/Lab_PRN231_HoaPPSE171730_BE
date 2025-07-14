@@ -41,7 +41,11 @@
                             Change Password
                         </a>
                     </li>
-
+                    <li class="nav-item" id="navCategoriesMgmt">
+                        <a class="nav-link" asp-controller="Categories" asp-action="Index">
+                            Manage Categories
+                        </a>
+                    </li>
                 </ul>
                 <ul class="navbar-nav">
                     <li class="nav-item" id="navRegister">
@@ -81,6 +85,7 @@
             $('#navOrchidsBrowse').toggle(role === 'Customer');
             $('#navProfile').toggle(!!token);
             $('#navChangePassword').toggle(!!token);
+            $('#navCategoriesMgmt').toggle(role === 'Staff');
 
           $('#logoutLink').click(e => {
             e.preventDefault();
