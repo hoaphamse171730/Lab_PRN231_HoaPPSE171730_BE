@@ -17,6 +17,10 @@ namespace IdentityAjaxClient.Controllers
         {
             return View();
         }
+        public IActionResult Details(int id)
+        {
+            return View(id);
+        }
 
         public IActionResult Privacy()
         {

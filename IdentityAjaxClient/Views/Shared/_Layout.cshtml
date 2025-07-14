@@ -46,6 +46,10 @@
                             Manage Categories
                         </a>
                     </li>
+                    <li class="nav-item" id="navCart">
+                        <a class="nav-link" asp-controller="Orders" asp-action="Cart">Cart</a>
+                    </li>
+
                 </ul>
                 <ul class="navbar-nav">
                     <li class="nav-item" id="navRegister">
@@ -86,6 +90,7 @@
             $('#navProfile').toggle(!!token);
             $('#navChangePassword').toggle(!!token);
             $('#navCategoriesMgmt').toggle(role === 'Staff');
+            $('#navCart').toggle(localStorage.getItem('role') === 'Customer');
 
           $('#logoutLink').click(e => {
             e.preventDefault();

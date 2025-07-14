@@ -8,6 +8,10 @@ namespace IdentityAjaxClient.Controllers
     {
         public IActionResult Index() => View();
         public IActionResult Browse() => View();
+        public IActionResult Details(int id)
+        {
+            return View(id);
+        }
 
     }
 }

@@ -1,0 +1,108 @@
+﻿@{
+    ViewData["Title"] = "Your Cart";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<table id="tblCart" class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Price</th>
+            <th>Qty</th>
+            <th>Subtotal</th>
+            <th>Remove</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+    <tfoot>
+        <tr>
+            <td colspan="3" class="text-end"><strong>Total:</strong></td>
+            <td id="cartTotal"></td>
+            <td></td>
+        </tr>
+    </tfoot>
+</table>
+
+<button id="btnPlaceOrder" class="btn btn-success">Place Order</button>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        const ROUTES = {
+          placeOrder: '@BusinessObjects.Shared.ApiRoutes.PlaceOrder'
+        };
+        const token = localStorage.getItem('jwt') || '';
+
+        let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+
+        function renderCart() {
+          let total = 0;
+          const rows = cart.map((item, idx) => {
+            const sub = item.price * item.quantity;
+            total += sub;
+            return `
+              <tr data-idx="${idx}">
+                <td>${item.name}</td>
+                <td>${item.price.toFixed(2)}</td>
+                <td>
+                  <input type="number" class="form-control form-control-sm qty-cart"
+                         value="${item.quantity}" min="1" />
+                </td>
+                <td>${sub.toFixed(2)}</td>
+                <td>
+                  <button class="btn btn-sm btn-danger btn-remove">X</button>
+                </td>
+              </tr>`;
+          }).join('');
+          $('#tblCart tbody').html(rows);
+          $('#cartTotal').text(total.toFixed(2));
+        }
+
+        // Qty change in cart
+        $(document).on('input', '.qty-cart', function(){
+          const idx = $(this).closest('tr').data('idx');
+          cart[idx].quantity = parseInt(this.value) || 1;
+          localStorage.setItem('cart', JSON.stringify(cart));
+          renderCart();
+        });
+
+        // Remove
+        $(document).on('click', '.btn-remove', function(){
+          const idx = $(this).closest('tr').data('idx');
+          cart.splice(idx, 1);
+          localStorage.setItem('cart', JSON.stringify(cart));
+          renderCart();
+        });
+
+        // Place order
+        $('#btnPlaceOrder').click(async function(){
+          if (!cart.length) return alert('Your cart is empty.');
+          const req = { items: cart.map(c => ({ orchidId: c.id, quantity: c.quantity })) };
+          try {
+            const resp = await fetch(ROUTES.placeOrder, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+              },
+              body: JSON.stringify(req)
+            });
+            if (!resp.ok) {
+              const err = await resp.text();
+              return alert('Failed to place order: ' + err);
+            }
+            alert('Order placed!');
+            cart = [];
+            localStorage.removeItem('cart');
+            renderCart();
+          } catch (ex) {
+            alert('Error: ' + ex);
+          }
+        });
+
+        $(function(){
+          renderCart();
+        });
+    </script>
+}
