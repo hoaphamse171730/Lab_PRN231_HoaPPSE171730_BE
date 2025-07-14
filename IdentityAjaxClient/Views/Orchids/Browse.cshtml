@@ -5,15 +5,21 @@
 <h2>@ViewData["Title"]</h2>
 
 <div class="row mb-3">
-    <div class="col-md-4">
+    <div class="col-md-3">
         <input id="searchName" class="form-control" placeholder="Search by name…" />
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
         <select id="filterCategory" class="form-select">
             <option value="">All categories</option>
         </select>
     </div>
     <div class="col-md-2">
+        <input id="minPrice" type="number" step="0.01" class="form-control" placeholder="Min price" />
+    </div>
+    <div class="col-md-2">
+        <input id="maxPrice" type="number" step="0.01" class="form-control" placeholder="Max price" />
+    </div>
+    <div class="col-md-1">
         <button id="btnFilter" class="btn btn-primary">Filter</button>
     </div>
 </div>
@@ -122,12 +128,20 @@
 
         // Filtering
         $('#btnFilter').click(()=>{
-          const name = ($('#searchName').val()||'').toLowerCase(),
-                cat  = $('#filterCategory').val();
-          const filtered = allOrchids.filter(o=>
-            (!name || o.orchidName.toLowerCase().includes(name)) &&
-            (!cat  || o.categoryId==cat)
-          );
+          const name     = ($('#searchName').val()||'').toLowerCase(),
+                cat      = $('#filterCategory').val(),
+                minPrice = parseFloat($('#minPrice').val()),
+                maxPrice = parseFloat($('#maxPrice').val());
+
+          const filtered = allOrchids.filter(o=>{
+            const price = o.price;
+            const byName = !name || o.orchidName.toLowerCase().includes(name);
+            const byCat  = !cat  || o.categoryId == cat;
+            const byMin  = isNaN(minPrice) || price >= minPrice;
+            const byMax  = isNaN(maxPrice) || price <= maxPrice;
+            return byName && byCat && byMin && byMax;
+          });
+
           renderTable(filtered);
         });
 
