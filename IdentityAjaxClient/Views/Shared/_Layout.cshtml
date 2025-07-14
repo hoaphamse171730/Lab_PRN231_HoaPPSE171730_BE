@@ -25,9 +25,15 @@
                     <li class="nav-item">
                         <a class="nav-link" asp-controller="Home" asp-action="Privacy">Privacy</a>
                     </li>
-                    <li class="nav-item" id="navOrchids">
-                        <a class="nav-link" asp-controller="Orchids" asp-action="Index">Orchids</a>
+                    @* Staff management *@
+                    <li class="nav-item" id="navOrchidsMgmt">
+                        <a class="nav-link" asp-controller="Orchids" asp-action="Index">Manage Orchids</a>
                     </li>
+                    @* Customer catalog *@
+                    <li class="nav-item" id="navOrchidsBrowse">
+                        <a class="nav-link" asp-controller="Orchids" asp-action="Browse">Catalog</a>
+                    </li>
+
                 </ul>
                 <ul class="navbar-nav">
                     <li class="nav-item" id="navRegister">
@@ -56,13 +62,6 @@
           const token = localStorage.getItem('jwt');
           const role  = localStorage.getItem('role');
 
-          // Show Orchids only for Staff
-          if (role === 'Staff') {
-            $('#navOrchids').show();
-          } else {
-            $('#navOrchids').hide();
-          }
-
           if (token) {
             $('#navLogin, #navRegister').hide();
             $('#navLogout').show();
@@ -70,6 +69,8 @@
             $('#navLogin, #navRegister').show();
             $('#navLogout').hide();
           }
+            $('#navOrchidsMgmt').toggle(role === 'Staff');
+            $('#navOrchidsBrowse').toggle(role === 'Customer');
 
           $('#logoutLink').click(e => {
             e.preventDefault();

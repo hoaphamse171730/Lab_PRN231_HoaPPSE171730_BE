@@ -8,7 +8,6 @@ using System.Reflection.Metadata;
 
 namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
 {
-    [Authorize(Roles = "Staff")]
 
     [ApiController]
     [Route("api/[controller]")]
@@ -29,6 +28,8 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Staff")]
+
         public async Task<IActionResult> Create(Orchid o)
         {
             await _dao.InsertAsync(o);
@@ -37,6 +38,8 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Staff")]
+
         public async Task<IActionResult> Update(int id, Orchid o)
         {
             if (id != o.OrchidId) return BadRequest();
@@ -46,6 +49,8 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Staff")]
+
         public async Task<IActionResult> Delete(int id)
         {
             var o = await _dao.GetByIdAsync(id);
