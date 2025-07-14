@@ -15,6 +15,28 @@ namespace IdentityAjaxClient.Controllers
         [HttpGet]
         public IActionResult Register() => View(new RegisterRequest());
 
+        [HttpPost]
+        public async Task<IActionResult> Register(RegisterRequest model)
+        {
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var client = _httpFactory.CreateClient();
+            var resp = await client.PostAsJsonAsync(
+                "https://localhost:7244/api/auth/register", model);
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                var error = await resp.Content.ReadAsStringAsync();
+                ModelState.AddModelError("", error);
+                return View(model);
+            }
+
+            // Success → Home page
+            return RedirectToAction("Index", "Home");
+        }
+
+
         [HttpGet]
         public IActionResult Login() => View(new LoginRequest());
 

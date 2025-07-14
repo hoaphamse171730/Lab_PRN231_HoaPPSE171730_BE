@@ -4,6 +4,7 @@ using BCrypt.Net;
 using BusinessObjects.Entities;
 using BusinessObjects.Models;
 using BusinessObjects.Models.Accounts;                          // BCrypt.Net.BCrypt
+using BusinessObjects.Shared;
 using DataAccess.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -80,7 +81,7 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
                 AccountName = req.AccountName,
                 Email = req.Email,
                 Password = BCrypt.Net.BCrypt.HashPassword(req.Password),
-                RoleId = 2
+                RoleId = Constants.RoleCustomer
             };
 
             await _accountDao.InsertAsync(acct);
