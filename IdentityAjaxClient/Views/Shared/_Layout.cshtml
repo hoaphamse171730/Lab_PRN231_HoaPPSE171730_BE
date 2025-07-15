@@ -33,6 +33,12 @@
                     <li class="nav-item" id="navOrchidsBrowse">
                         <a class="nav-link" asp-controller="Orchids" asp-action="Browse">Catalog</a>
                     </li>
+                    <li class="nav-item" id="navDashboard">
+                        <a class="nav-link" asp-controller="Dashboard" asp-action="Index">
+                            Dashboard
+                        </a>
+                    </li>
+
                     <li class="nav-item" id="navProfile">
                         <a class="nav-link" asp-controller="Account" asp-action="Profile">Profile</a>
                     </li>
@@ -93,6 +99,7 @@
             $('#navLogout').hide();
           }
             $('#navOrchidsMgmt').toggle(role === 'Staff');
+            $('#navDashboard').toggle(role === 'Staff');
             $('#navOrchidsBrowse').toggle(role === 'Customer');
             $('#navProfile').toggle(!!token);
             $('#navChangePassword').toggle(!!token);

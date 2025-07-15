@@ -1,0 +1,83 @@
+﻿@using BusinessObjects.Shared
+@{
+    ViewData["Title"] = "Staff Dashboard";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<div class="row">
+    <div class="col">Total Orders: <span id="totalOrders"></span></div>
+    <div class="col">Total Revenue: <span id="totalRevenue"></span></div>
+    <div class="col">Pending: <span id="pendingCount"></span></div>
+    <div class="col">Processing: <span id="processingCount"></span></div>
+    <div class="col">Cancelled: <span id="cancelledCount"></span></div>
+</div>                
+<h3>Top 5 Best‑selling Orchids</h3>
+<ul id="topOrchids"></ul>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.7/signalr.min.js"></script>
+    <script>
+        $(function() {
+          const ROUTES = {
+            overview:   '@ApiRoutes.StatsOverview',
+            topOrchids: '@ApiRoutes.StatsTopOrchids',
+            orderHub:   '@ApiRoutes.OrderHub'
+          };
+          const jwt = localStorage.getItem('jwt') || '';
+
+          // 1) Fetch dashboard numbers (with JWT)
+          fetch(ROUTES.overview, {
+            headers: { 'Authorization': 'Bearer ' + jwt }
+          })
+          .then(r => r.ok ? r.json() : Promise.reject(r.status))
+          .then(data => {
+            $('#totalOrders').text(data.totalOrders);
+            $('#totalRevenue').text(data.totalRevenue.toLocaleString());
+            $('#pendingCount').text(data.pendingCount);
+            $('#processingCount').text(data.processingCount);
+            $('#cancelledCount').text(data.cancelledCount);
+          })
+          .catch(err => console.error('Overview load error', err));
+
+          // 2) Fetch top‑orchids (with JWT)
+          fetch(ROUTES.topOrchids, {
+            headers: { 'Authorization': 'Bearer ' + jwt }
+          })
+          .then(r => r.ok ? r.json() : Promise.reject(r.status))
+          .then(list => {
+            const $ul = $('#topOrchids').empty();
+            list.forEach(x => $ul.append(
+              `<li>${x.orchidName} (ID ${x.orchidId}): ${x.sold} sold</li>`
+            ));
+          })
+          .catch(err => console.error('Top‑orchids load error', err));
+
+          // 3) Wire up SignalR
+          const connection = new signalR.HubConnectionBuilder()
+            .withUrl(ROUTES.orderHub, {
+              accessTokenFactory: () => jwt
+            })
+            .withAutomaticReconnect()
+            .build();
+
+          connection.on('OrderStatusUpdated', () => {
+            // just refresh the counts
+            fetch(ROUTES.overview, {
+              headers: { 'Authorization': 'Bearer ' + jwt }
+            })
+            .then(r => r.json())
+            .then(data => {
+              $('#pendingCount').text(data.pendingCount);
+              $('#processingCount').text(data.processingCount);
+              $('#cancelledCount').text(data.cancelledCount);
+            })
+            .catch(console.error);
+          });
+
+          connection.start()
+            .catch(err => console.error('SignalR start failed:', err));
+        });
+    </script>
+}

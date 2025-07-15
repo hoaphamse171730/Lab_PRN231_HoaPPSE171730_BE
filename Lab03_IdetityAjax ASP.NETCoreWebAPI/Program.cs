@@ -100,6 +100,7 @@ app.UseAuthorization();
 
 // 7) Map your controllers (including AuthController with its /me endpoint)
 app.MapControllers();
-app.MapHub<OrderNotificationHub>("/hubs/orders");
+app.MapHub<OrderNotificationHub>("/hubs/orders")
+   .RequireCors("ClientApp");
 
 app.Run();

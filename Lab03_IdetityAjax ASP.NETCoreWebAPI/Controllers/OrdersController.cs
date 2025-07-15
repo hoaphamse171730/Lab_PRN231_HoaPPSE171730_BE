@@ -36,6 +36,7 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
         }
 
         // GET /api/Orders
+        [HttpGet]
         public async Task<IActionResult> GetAll(
             int page = 1,
             int pageSize = 10,

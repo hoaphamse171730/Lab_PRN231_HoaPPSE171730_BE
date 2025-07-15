@@ -21,6 +21,9 @@ namespace BusinessObjects.Shared
         public static string PlaceOrder => Orders;
         public static string Pay => $"{Orders}/pay";
         public static string VnPayReturn => $"{Orders}/vnpay-return";
+        public static string OrderHub => $"{Constants.ApiBaseUrl}/hubs/orders";
+        public static string StatsOverview => $"{Constants.ApiBaseUrl}/api/Stats/overview";
+        public static string StatsTopOrchids => $"{Constants.ApiBaseUrl}/api/Stats/top-orchids";
 
     }
 }
