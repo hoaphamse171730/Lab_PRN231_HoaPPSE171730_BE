@@ -3,6 +3,7 @@ using BusinessObjects.Entities;
 using BusinessObjects.Models.Orders;
 using BusinessObjects.Shared;
 using DataAccess.Interfaces;
+using DataAccess.Services;
 using Lab03_IdetityAjax_ASP.NETCoreWebAPI.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,16 +19,20 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
         private readonly IOrderDetailDAO _detailDao;
         private readonly IOrchidDAO _orchidDao;
         private readonly IHubContext<OrderNotificationHub> _hub;
+        private readonly VnPayService _vnpay;
 
         public OrdersController(
             IOrderDAO orderDao,
             IOrderDetailDAO detailDao,
-            IOrchidDAO orchidDao, IHubContext<OrderNotificationHub> hub)
+            IOrchidDAO orchidDao, 
+            IHubContext<OrderNotificationHub> hub,
+            VnPayService vnpay)
         {
             _orderDao = orderDao;
             _detailDao = detailDao;
             _orchidDao = orchidDao;
             _hub = hub;
+            _vnpay = vnpay;
         }
 
         // GET /api/Orders
@@ -163,5 +168,42 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
                 return Forbid();
             return Ok(order);
         }
+
+        [HttpPost("pay"), Authorize(Roles = "Customer")]
+        public async Task<IActionResult> Pay([FromBody] PlaceOrderRequest req)
+        {
+            if (req.Items == null || !req.Items.Any())
+                return BadRequest("Cart is empty.");
+
+            decimal total = 0;
+            foreach (var item in req.Items)
+            {
+                var o = await _orchidDao.GetByIdAsync(item.OrchidId);
+                if (o == null) return BadRequest($"Orchid {item.OrchidId} not found.");
+                total += o.Price * item.Quantity;
+            }
+
+            var url = _vnpay.CreatePaymentUrl(total, req);
+            return Ok(new { url });
+        }
+        // GET /api/Orders/vnpay-return
+        [HttpGet("vnpay-return")]
+        [AllowAnonymous]
+        public IActionResult VnPayReturn()
+        {
+            var q = Request.Query;
+            if (!_vnpay.ValidateSignature(q))
+                return BadRequest("Invalid signature");
+
+            var code = q["vnp_ResponseCode"].ToString();
+            var txn = q["vnp_TxnRef"].ToString();
+
+            if (code == "00")
+                return Redirect("https://localhost:7098/Orders/Success");
+            else
+                return Redirect("https://localhost:7098/Orders/Failed");
+        }
+
+
     }
 }

@@ -19,7 +19,8 @@ namespace BusinessObjects.Shared
         public static string AuthMe => $"{Constants.ApiBaseUrl}/api/Auth/me";
         public static string AuthChangePassword => $"{Constants.ApiBaseUrl}/api/Auth/change-password";
         public static string PlaceOrder => Orders;
-
+        public static string Pay => $"{Orders}/pay";
+        public static string VnPayReturn => $"{Orders}/vnpay-return";
 
     }
 }

@@ -29,57 +29,80 @@
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        const ROUTES = { placeOrder: '@BusinessObjects.Shared.ApiRoutes.PlaceOrder' };
-        const token  = localStorage.getItem('jwt')||'';
-        let cart      = JSON.parse(localStorage.getItem('cart')||'[]');
+        const ROUTES = {
+          pay: '@BusinessObjects.Shared.ApiRoutes.Pay'
+        };
+        const token = localStorage.getItem('jwt') || '';
+        let cart = JSON.parse(localStorage.getItem('cart') || '[]');
 
         function renderCart() {
-          let total=0;
-          const rows = cart.map((item,idx)=> {
-            const sub = item.price*item.quantity; total+=sub;
+          let total = 0;
+          const rows = cart.map((item, idx) => {
+            const sub = item.price * item.quantity;
+            total += sub;
             return `
               <tr data-idx="${idx}">
                 <td>${item.name}</td>
                 <td>${item.price.toFixed(2)}</td>
-                <td><input type="number" class="form-control qty" value="${item.quantity}" min="1" /></td>
+                <td>
+                  <input type="number" class="form-control qty"
+                         value="${item.quantity}" min="1" />
+                </td>
                 <td>${sub.toFixed(2)}</td>
-                <td><button class="btn btn-sm btn-danger btn-remove">X</button></td>
+                <td>
+                  <button class="btn btn-sm btn-danger btn-remove">X</button>
+                </td>
               </tr>`;
           }).join('');
           $('#tblCart tbody').html(rows);
           $('#cartTotal').text(total.toFixed(2));
         }
 
-        $(document).on('change', '.qty', function(){
+        // update quantity
+        $(document).on('change', '.qty', function() {
           const idx = $(this).closest('tr').data('idx');
-          cart[idx].quantity = parseInt(this.value)||1;
+          cart[idx].quantity = parseInt(this.value) || 1;
           localStorage.setItem('cart', JSON.stringify(cart));
           renderCart();
         });
 
-        $(document).on('click', '.btn-remove', function(){
+        // remove item
+        $(document).on('click', '.btn-remove', function() {
           const idx = $(this).closest('tr').data('idx');
-          cart.splice(idx,1);
+          cart.splice(idx, 1);
           localStorage.setItem('cart', JSON.stringify(cart));
           renderCart();
         });
 
-        $('#btnPlaceOrder').click(async function(){
+        // place order → redirect to VNPAY
+        $('#btnPlaceOrder').click(async()=>{
           if (!cart.length) return alert('Your cart is empty.');
-          const req = { items: cart.map(c=>({ orchidId:c.id, quantity:c.quantity })) };
-          const resp = await fetch(ROUTES.placeOrder,{
-            method:'POST',
-            headers:{
-              'Content-Type':'application/json',
-              'Authorization':'Bearer '+token
+          const payload = { items: cart.map(c=>({
+            OrchidId: c.id,
+            Quantity: c.quantity
+          })) };
+
+          const resp = await fetch(ROUTES.pay, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + token
             },
-            body: JSON.stringify(req)
+            body: JSON.stringify(payload)
           });
-          if (!resp.ok) return alert('Failed: '+await resp.text());
-          alert('Order placed!');
-          cart=[]; localStorage.removeItem('cart'); renderCart();
+
+          if (!resp.ok) {
+            const txt = await resp.text();
+            return alert('Error creating payment: ' + txt);
+          }
+
+          const { url } = await resp.json();
+          window.location = url;
         });
 
-        $(function(){ renderCart(); });
+        // initial render
+        $(function() {
+          renderCart();
+        });
     </script>
 }

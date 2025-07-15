@@ -23,6 +23,7 @@ builder.Services.AddControllers()
     });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddHttpContextAccessor();
 
 // 2) EF Core & DAOs
 builder.Services.AddDbContext<MyDbContext>(opts =>
@@ -37,7 +38,7 @@ builder.Services.AddScoped<IOrderDAO, OrderDAO>();
 builder.Services.AddScoped<IOrderDetailDAO, OrderDetailDAO>();
 builder.Services.AddScoped<IRoleDAO, RoleDAO>();
 builder.Services.AddScoped<IStorageService, CloudinaryStorageService>();
-
+builder.Services.AddSingleton<VnPayService>();
 builder.Services.AddSignalR();
 
 // 3) JWT Authentication
