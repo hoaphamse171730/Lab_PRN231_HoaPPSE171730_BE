@@ -186,24 +186,78 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
             var url = _vnpay.CreatePaymentUrl(total, req);
             return Ok(new { url });
         }
+
         // GET /api/Orders/vnpay-return
-        [HttpGet("vnpay-return")]
-        [AllowAnonymous]
-        public IActionResult VnPayReturn()
+        [HttpGet("vnpay-return"), AllowAnonymous]
+        public async Task<IActionResult> VnPayReturn()
         {
             var q = Request.Query;
-            if (!_vnpay.ValidateSignature(q))
+            var isValid = _vnpay.ValidateSignature(q);
+            if (!isValid)
                 return BadRequest("Invalid signature");
 
-            var code = q["vnp_ResponseCode"].ToString();
-            var txn = q["vnp_TxnRef"].ToString();
+            // 1) Did VNPay say the payment succeeded?
+            var respCode = q["vnp_ResponseCode"].ToString();
+            var txnRef = q["vnp_TxnRef"].ToString();
 
-            if (code == "00")
-                return Redirect("https://localhost:7098/Orders/Success");
-            else
+            if (respCode != "00")
+            {
+                // failed / cancelled
                 return Redirect("https://localhost:7098/Orders/Failed");
-        }
+            }
 
+            // 2) Look up the original cart payload
+            var req = _vnpay.RetrieveRequest(txnRef);
+            if (req == null)
+            {
+                // we don't know this transaction
+                return BadRequest("Unknown or expired transaction reference.");
+            }
+
+            // 3) Persist the Order
+            //    (basically your PlaceOrder logic, but without double-charging)
+            var order = new Order
+            {
+                AccountId = User.GetAccountId(),
+                OrderDate = DateTime.UtcNow,
+                OrderStatus = Constants.OrderStatusPending,
+                TotalAmount = 0m
+            };
+            await _orderDao.InsertAsync(order);
+            await _orderDao.SaveAsync();  // now order.Id is populated
+
+            decimal runningTotal = 0m;
+            foreach (var item in req.Items)
+            {
+                var orchid = await _orchidDao.GetByIdAsync(item.OrchidId);
+                if (orchid == null)
+                    continue;  // or handle missing item as you prefer
+
+                var detail = new OrderDetail
+                {
+                    OrderId = order.Id,
+                    OrchidId = item.OrchidId,
+                    Quantity = item.Quantity,
+                    Price = orchid.Price
+                };
+                runningTotal += orchid.Price * item.Quantity;
+                await _detailDao.InsertAsync(detail);
+            }
+            await _detailDao.SaveAsync();
+
+            // 4) Update the order total
+            order.TotalAmount = runningTotal;
+            await _orderDao.UpdateAsync(order);
+            await _orderDao.SaveAsync();
+
+            // 5) Notify the customer (if you’re using SignalR)
+            var group = $"user-{order.AccountId}";
+            await _hub.Clients.Group(group)
+                .SendAsync("OrderStatusUpdated", new { orderId = order.Id, status = order.OrderStatus });
+
+            // 6) Redirect browser back to your MVC “Success” page
+            return Redirect("https://localhost:7098/Orders/Success");
+        }
 
     }
 }

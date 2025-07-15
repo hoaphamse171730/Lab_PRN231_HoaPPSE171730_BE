@@ -5,9 +5,9 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
-using System.Web;
 
 namespace DataAccess.Services
 {
@@ -15,6 +15,7 @@ namespace DataAccess.Services
     {
         private readonly IConfiguration _config;
         private readonly IHttpContextAccessor _httpAccessor;
+        // temporarily hold the in‑flight carts by txnRef
         private static readonly ConcurrentDictionary<string, PlaceOrderRequest> _pending
             = new();
 
@@ -26,23 +27,24 @@ namespace DataAccess.Services
 
         public string CreatePaymentUrl(decimal amount, PlaceOrderRequest req)
         {
-            // 1) store request
+            // 1) Generate a txnRef and stash the request
             var txnRef = Guid.NewGuid().ToString("N");
             _pending[txnRef] = req;
 
-            // 2) load config
+            // 2) Load your VNPay config
             var vnpUrl = _config["VnPay:Url"]!;
             var tmnCode = _config["VnPay:TmnCode"]!;
             var hashSecret = _config["VnPay:HashSecret"]!;
             var returnUrl = _config["VnPay:ReturnUrl"]!;
 
-            // 3) client IP
+            // 3) Grab client IP (sandbox on localhost will be ::1)
             var ip = _httpAccessor.HttpContext?
-                        .Connection.RemoteIpAddress?
+                        .Connection?
+                        .RemoteIpAddress?
                         .ToString() ?? "127.0.0.1";
 
-            // 4) build sorted params
-            var vnpParams = new SortedDictionary<string, string>
+            // 4) Build the *raw* parameter bag (no SecureHash entries yet)
+            var vnpParams = new Dictionary<string, string>
             {
                 ["vnp_Version"] = "2.1.0",
                 ["vnp_Command"] = "pay",
@@ -58,27 +60,32 @@ namespace DataAccess.Services
                 ["vnp_CreateDate"] = DateTime.UtcNow.ToString("yyyyMMddHHmmss")
             };
 
-            // 5) percent‑encode & join
-            var data = string.Join("&", vnpParams
-                .Select(kv => $"{Uri.EscapeDataString(kv.Key)}={Uri.EscapeDataString(kv.Value)}"));
+            // 5) Sort by key, then percent‑encode both key and value, and join with &
+            var ordered = vnpParams
+                .OrderBy(kv => kv.Key, StringComparer.Ordinal)
+                .Select(kv =>
+                    $"{WebUtility.UrlEncode(kv.Key)}={WebUtility.UrlEncode(kv.Value)}");
 
-            // 6) HMAC SHA512
-            var hash = ComputeHmacSha512(data, hashSecret);
+            var dataToHash = string.Join("&", ordered);
 
-            // 7) build final URL (must append SecureHashType and then SecureHash)
-            var builder = new StringBuilder(vnpUrl)
-                .Append("?").Append(data)
-                .Append("&vnp_SecureHashType=HMAC_SHA512")
-                .Append("&vnp_SecureHash=").Append(hash);
+            // 6) Compute the HMAC SHA512
+            var secureHash = ComputeHmacSha512(dataToHash, hashSecret);
 
-            return builder.ToString();
+            // 7) Finally assemble the URL with both vnp_SecureHashType & vnp_SecureHash
+            var fullQuery = new StringBuilder()
+                .Append(string.Join("&", ordered))
+                .Append("&vnp_SecureHashType=HmacSHA512")
+                .Append("&vnp_SecureHash=").Append(secureHash)
+                .ToString();
+
+            return $"{vnpUrl}?{fullQuery}";
         }
 
         public bool ValidateSignature(IQueryCollection query)
         {
             var secret = _config["VnPay:HashSecret"]!;
+            // 1) Re‑build the raw data** in exactly the same way **
             var dict = new SortedDictionary<string, string>();
-
             foreach (var key in query.Keys)
             {
                 if (key.StartsWith("vnp_") &&
@@ -89,12 +96,14 @@ namespace DataAccess.Services
                 }
             }
 
-            var data = string.Join("&", dict
-                .Select(kv =>
-                    $"{Uri.EscapeDataString(kv.Key)}={Uri.EscapeDataString(kv.Value)}"));
+            var dataToHash = string.Join("&",
+                dict
+                 .Select(kv => $"{WebUtility.UrlEncode(kv.Key)}={WebUtility.UrlEncode(kv.Value)}"));
 
-            var expected = ComputeHmacSha512(data, secret);
+            // 2) Compute HMAC again
+            var expected = ComputeHmacSha512(dataToHash, secret);
             var received = query["vnp_SecureHash"].FirstOrDefault() ?? "";
+
             return string.Equals(expected, received, StringComparison.OrdinalIgnoreCase);
         }
 
@@ -105,6 +114,7 @@ namespace DataAccess.Services
         {
             using var hmac = new HMACSHA512(Encoding.UTF8.GetBytes(key));
             var bytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(text));
+            // uppercase hex string with no dashes
             return BitConverter.ToString(bytes).Replace("-", "").ToUpperInvariant();
         }
     }

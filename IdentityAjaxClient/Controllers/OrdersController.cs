@@ -21,6 +21,17 @@ namespace IdentityAjaxClient.Controllers
         [HttpGet]
         public IActionResult Details(int id) => View(id);
 
+        [HttpGet]
+        public IActionResult Success()
+        {
+            return View();
+        }
+
+        [HttpGet]
+        public IActionResult Failed()
+        {
+            return View();
+        }
 
         public IActionResult Cart() => View();
         [HttpGet("orders/vnpay-return")]
