@@ -1,6 +1,8 @@
 ﻿using BusinessObjects.Models.Orders;
+using BusinessObjects.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Identity.Client;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -16,8 +18,10 @@ namespace DataAccess.Services
         private readonly IConfiguration _config;
         private readonly IHttpContextAccessor _httpAccessor;
         // temporarily hold the in‑flight carts by txnRef
-        private static readonly ConcurrentDictionary<string, PlaceOrderRequest> _pending
-            = new();
+        private static readonly ConcurrentDictionary<
+            string,
+            (PlaceOrderRequest Req, int AccountId)
+        > _pending = new();
 
         public VnPayService(IConfiguration config, IHttpContextAccessor httpAccessor)
         {
@@ -29,7 +33,12 @@ namespace DataAccess.Services
         {
             // 1) Generate a txnRef and stash the request
             var txnRef = Guid.NewGuid().ToString("N");
-            _pending[txnRef] = req;
+            var accountId = _httpAccessor
+            .HttpContext!
+            .User
+            .GetAccountId();
+
+            _pending[txnRef] = (req, accountId);
 
             // 2) Load your VNPay config
             var vnpUrl = _config["VnPay:Url"]!;
@@ -107,8 +116,12 @@ namespace DataAccess.Services
             return string.Equals(expected, received, StringComparison.OrdinalIgnoreCase);
         }
 
-        public PlaceOrderRequest? RetrieveRequest(string txnRef)
-            => _pending.TryRemove(txnRef, out var r) ? r : null;
+        public (PlaceOrderRequest Req, int AccountId)? RetrieveRequest(string txnRef)
+        {
+            if (_pending.TryRemove(txnRef, out var tuple))
+                return tuple;
+            return null;
+        }
 
         private static string ComputeHmacSha512(string text, string key)
         {

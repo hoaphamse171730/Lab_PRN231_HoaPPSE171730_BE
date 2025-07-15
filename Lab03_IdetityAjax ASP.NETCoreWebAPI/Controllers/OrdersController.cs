@@ -188,50 +188,45 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
         }
 
         // GET /api/Orders/vnpay-return
+
         [HttpGet("vnpay-return"), AllowAnonymous]
         public async Task<IActionResult> VnPayReturn()
         {
             var q = Request.Query;
-            var isValid = _vnpay.ValidateSignature(q);
-            if (!isValid)
+            if (!_vnpay.ValidateSignature(q))
                 return BadRequest("Invalid signature");
 
-            // 1) Did VNPay say the payment succeeded?
-            var respCode = q["vnp_ResponseCode"].ToString();
+            var code = q["vnp_ResponseCode"].ToString();
             var txnRef = q["vnp_TxnRef"].ToString();
 
-            if (respCode != "00")
-            {
-                // failed / cancelled
+            // if payment failed or cancelled
+            if (code != "00")
                 return Redirect("https://localhost:7098/Orders/Failed");
-            }
 
-            // 2) Look up the original cart payload
-            var req = _vnpay.RetrieveRequest(txnRef);
-            if (req == null)
-            {
-                // we don't know this transaction
-                return BadRequest("Unknown or expired transaction reference.");
-            }
+            // retrieve the original cart + account
+            var pending = _vnpay.RetrieveRequest(txnRef);
+            if (pending == null)
+                return BadRequest("Unknown or expired transaction.");
 
-            // 3) Persist the Order
-            //    (basically your PlaceOrder logic, but without double-charging)
+            var (req, accountId) = pending.Value;
+
+            // 1) create the order under that accountId
             var order = new Order
             {
-                AccountId = User.GetAccountId(),
+                AccountId = accountId,
                 OrderDate = DateTime.UtcNow,
                 OrderStatus = Constants.OrderStatusPending,
                 TotalAmount = 0m
             };
             await _orderDao.InsertAsync(order);
-            await _orderDao.SaveAsync();  // now order.Id is populated
+            await _orderDao.SaveAsync();  // get order.Id
 
+            // 2) insert details
             decimal runningTotal = 0m;
             foreach (var item in req.Items)
             {
                 var orchid = await _orchidDao.GetByIdAsync(item.OrchidId);
-                if (orchid == null)
-                    continue;  // or handle missing item as you prefer
+                if (orchid == null) continue;
 
                 var detail = new OrderDetail
                 {
@@ -245,17 +240,21 @@ namespace Lab03_IdetityAjax_ASP.NETCoreWebAPI.Controllers
             }
             await _detailDao.SaveAsync();
 
-            // 4) Update the order total
+            // 3) update total
             order.TotalAmount = runningTotal;
             await _orderDao.UpdateAsync(order);
             await _orderDao.SaveAsync();
 
-            // 5) Notify the customer (if you’re using SignalR)
-            var group = $"user-{order.AccountId}";
-            await _hub.Clients.Group(group)
-                .SendAsync("OrderStatusUpdated", new { orderId = order.Id, status = order.OrderStatus });
+            // 4) notify (if using SignalR)
+            await _hub.Clients
+                     .Group($"user-{accountId}")
+                     .SendAsync("OrderStatusUpdated", new
+                     {
+                         orderId = order.Id,
+                         status = order.OrderStatus
+                     });
 
-            // 6) Redirect browser back to your MVC “Success” page
+            // 5) redirect back to your MVC success page
             return Redirect("https://localhost:7098/Orders/Success");
         }
 
