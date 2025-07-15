@@ -1,6 +1,13 @@
 ﻿@{
     ViewData["Title"] = "Payment Successful";
 }
-<h2>Payment Successful!</h2>
+
+<h2>@ViewData["Title"]</h2>
 <p>Your order has been placed and is now pending.</p>
 <a href="/Orders/History" class="btn btn-primary">View My Orders</a>
+
+@section Scripts {
+    <script>
+        localStorage.removeItem('cart');
+    </script>
+}
