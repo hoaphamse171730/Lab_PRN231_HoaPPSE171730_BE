@@ -37,9 +37,7 @@
             headers: { 'Authorization': 'Bearer ' + token }
           });
           if (!resp.ok) {
-            return $('body').prepend(
-              `<div class="alert alert-danger">Error ${resp.status}</div>`
-            );
+            return showNotification(`Error ${resp.status}`, 'error');
           }
           const o = await resp.json();
           $('#odDate').text(new Date(o.orderDate).toLocaleString());

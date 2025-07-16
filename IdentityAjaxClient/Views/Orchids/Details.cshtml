@@ -5,7 +5,7 @@
 
 <h2>@ViewData["Title"]</h2>
 
-<div id="detailsContainer" class="row">
+<div id="detailsContainer" class="row" style="background: #fff0f6; border-radius: 18px; box-shadow: 0 2px 12px rgba(124,58,237,0.07); padding: 2rem 1rem; margin-bottom: 2rem;">
     <div class="col-12 text-center">
         <div class="spinner-border" role="status"><span class="visually-hidden">Loading…</span></div>
     </div>
@@ -67,7 +67,7 @@
                 quantity: qty
               });
               localStorage.setItem('cart', JSON.stringify(cart));
-              alert(`Added ${qty} × ${o.orchidName} to cart (Total: $${(o.price*qty).toFixed(2)})`);
+              showNotification(`Added ${qty} × ${o.orchidName} to cart!`, 'success');
             });
           }
           catch(err) {

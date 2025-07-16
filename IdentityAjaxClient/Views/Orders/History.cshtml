@@ -142,8 +142,9 @@
           }).done(()=>{
             $row.find('.status-cell').text(newStatus);
             $row.find('.process, .complete, .cancel').remove();
+            showNotification('Order status updated!', 'success');
           }).fail((xhr,_,err)=>{
-            alert('Failed: '+(xhr.responseText||err));
+            showNotification('Failed: '+(xhr.responseText||err), 'error');
           });
         }
 
@@ -156,9 +157,13 @@
           changeStatus($r.data('id'), STATUS.Completed, $r);
         });
         $(document).on('click','.cancel', function(){
-          if(!confirm('Cancel this order?')) return;
-          const $r = $(this).closest('tr');
-          changeStatus($r.data('id'), STATUS.Cancelled, $r);
+          // Custom confirm notification
+          if(window.confirm && confirm('Cancel this order?')) {
+            const $r = $(this).closest('tr');
+            changeStatus($r.data('id'), STATUS.Cancelled, $r);
+          } else if (!window.confirm) {
+            showNotification('Cancel this order? (Please use a modern browser for confirmation dialog)', 'info');
+          }
         });
 
         // Apply calendar filters

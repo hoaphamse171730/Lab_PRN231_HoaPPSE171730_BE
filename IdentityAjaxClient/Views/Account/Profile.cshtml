@@ -33,7 +33,7 @@
           const resp = await fetch(ROUTES.me, {
             headers: { 'Authorization': 'Bearer ' + token }
           });
-          if (!resp.ok) return alert('Cannot load profile');
+          if (!resp.ok) return showNotification('Cannot load profile', 'error');
           const data = await resp.json();
           $('#accountName').val(data.accountName);
           $('#email').val(data.email);
@@ -55,9 +55,9 @@
           });
           if (!resp.ok) {
             const err = await resp.text();
-            return alert('Update failed: ' + err);
+            return showNotification('Update failed: ' + err, 'error');
           }
-          alert('Profile updated successfully');
+          showNotification('Profile updated successfully', 'success');
         });
     </script>
 }

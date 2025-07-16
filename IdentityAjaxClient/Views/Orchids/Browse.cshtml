@@ -156,7 +156,7 @@
           if(item) item.quantity += qty;
           else cart.push({ id, name, price: pri, quantity: qty });
           localStorage.setItem('cart', JSON.stringify(cart));
-          alert(`Added ${qty}× ${name}`);
+          showNotification(`Added ${qty}× ${name} to cart!`, 'success');
         });
 
         // Initial load: unwrap resp.items here, too

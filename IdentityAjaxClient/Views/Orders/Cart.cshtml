@@ -76,7 +76,7 @@
 
         // place order → redirect to VNPAY
         $('#btnPlaceOrder').click(async()=>{
-          if (!cart.length) return alert('Your cart is empty.');
+          if (!cart.length) return showNotification('Your cart is empty.', 'warning');
           const payload = { items: cart.map(c=>({
             OrchidId: c.id,
             Quantity: c.quantity
@@ -93,7 +93,7 @@
 
           if (!resp.ok) {
             const txt = await resp.text();
-            return alert('Error creating payment: ' + txt);
+            return showNotification('Error creating payment: ' + txt, 'error');
           }
 
           const { url } = await resp.json();

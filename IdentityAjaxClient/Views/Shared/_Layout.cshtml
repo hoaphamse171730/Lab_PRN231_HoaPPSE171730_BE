@@ -6,11 +6,17 @@
     <title>@ViewData["Title"] - IdentityAjaxClient</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar navbar-expand-sm navbar-light bg-light">
+    <nav class="navbar navbar-expand-sm navbar-light bg-light shadow-sm" style="background: #fff0f6 !important;">
         <div class="container-fluid">
-            <a class="navbar-brand" asp-controller="Home" asp-action="Index">IdentityAjaxClient</a>
+            <a class="navbar-brand d-flex align-items-center" asp-controller="Home" asp-action="Index">
+                <span style="font-size:1.7rem; margin-right:0.5rem;">&#127804;</span> <!-- Flower emoji as icon -->
+                Orchid Shop
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                     data-bs-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault"
                     aria-expanded="false" aria-label="Toggle navigation">
@@ -80,6 +86,24 @@
     <div class="container mt-4">
         @RenderBody()
     </div>
+    <footer class="text-center py-4 mt-5" style="background: #fff0f6; color: #7c3aed; border-top: 1px solid #f3e8ff;">
+        <span style="font-size:1.2rem;">&#127804;</span> Orchid Shop &copy; @DateTime.Now.Year. Grown with love.
+    </footer>
+
+    <div id="notification-container"></div>
+    <script>
+      // Notification helper
+      function showNotification(message, type = 'success') {
+        const container = document.getElementById('notification-container');
+        const notif = document.createElement('div');
+        notif.className = 'notification ' + type;
+        notif.innerText = message;
+        container.appendChild(notif);
+        setTimeout(() => {
+          notif.remove();
+        }, 3000);
+      }
+    </script>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
