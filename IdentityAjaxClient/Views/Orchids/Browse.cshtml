@@ -74,30 +74,33 @@
         }
 
         function renderCards(list) {
-          const cards = list.map(o => `
-            <div class="col-12 col-sm-6 col-md-4">
-              <div class="card h-100 shadow orchid-card">
-                <img src="${o.orchidUrl || '/images/placeholder.png'}" class="card-img-top" alt="${o.orchidName}" style="height:180px; object-fit:cover; background:#fff0f6;">
-                <div class="card-body d-flex flex-column">
-                  <h5 class="card-title mb-1">${o.orchidName}</h5>
-                  <div class="mb-2">
-                    <span class="badge bg-${o.isNatural ? 'success' : 'secondary'}" style="font-size:0.9em;">${o.isNatural ? 'Natural' : 'Hybrid'}</span>
-                  </div>
-                  <div class="mb-2 text-muted" style="font-size:0.95em;">${o.category?.categoryName || '—'}</div>
-                  <div class="mb-2"><strong>$${o.price.toFixed(2)}</strong></div>
-                  <div class="input-group input-group-sm mb-2" style="max-width:160px;">
-                    <span class="input-group-text">Quantity</span>
-                    <input type="number" class="form-control qty" aria-label="Quantity" value="1" min="1" data-price="${o.price}" data-id="${o.orchidId}">
-                  </div>
-                  <div class="mb-2">Total: $<span class="subcell">${o.price.toFixed(2)}</span></div>
-                  <div class="mt-auto d-flex gap-2">
-                    <a href="/Orchids/Details/${o.orchidId}" class="btn btn-sm btn-info">Details</a>
-                    <button class="btn btn-sm btn-primary add-cart" data-id="${o.orchidId}">Add to Cart</button>
+          const cards = list.map(o => {
+            const price = Math.max(1000, Math.round(o.price));
+            return `
+              <div class="col-12 col-sm-6 col-md-4">
+                <div class="card h-100 shadow orchid-card">
+                  <img src="${o.orchidUrl || '/images/placeholder.png'}" class="card-img-top" alt="${o.orchidName}" style="height:180px; object-fit:cover; background:#fff0f6;">
+                  <div class="card-body d-flex flex-column">
+                    <h5 class="card-title mb-1">${o.orchidName}</h5>
+                    <div class="mb-2">
+                      <span class="badge bg-${o.isNatural ? 'success' : 'secondary'}" style="font-size:0.9em;">${o.isNatural ? 'Natural' : 'Hybrid'}</span>
+                    </div>
+                    <div class="mb-2 text-muted" style="font-size:0.95em;">${o.category?.categoryName || '—'}</div>
+                    <div class="mb-2"><strong>${price.toLocaleString('vi-VN')}₫</strong></div>
+                    <div class="input-group input-group-sm mb-2" style="max-width:160px;">
+                      <span class="input-group-text">Quantity</span>
+                      <input type="number" class="form-control qty" aria-label="Quantity" value="1" min="1" data-price="${price}" data-id="${o.orchidId}">
+                    </div>
+                    <div class="mb-2">Total: <span class="subcell">${price.toLocaleString('vi-VN')}₫</span></div>
+                    <div class="mt-auto d-flex gap-2">
+                      <a href="/Orchids/Details/${o.orchidId}" class="btn btn-sm btn-info">Details</a>
+                      <button class="btn btn-sm btn-primary add-cart" data-id="${o.orchidId}">Add to Cart</button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          `).join('');
+            `;
+          }).join('');
           $('#orchidCardGrid').html(cards);
         }
 
@@ -126,8 +129,8 @@
         $(document).on('input','.qty',function(){
           const $card = $(this).closest('.card');
           const qty = parseInt(this.value)||1;
-          const price = parseFloat($(this).data('price'));
-          $card.find('.subcell').text((qty*price).toFixed(2));
+          const price = Math.max(1000, parseInt($(this).data('price')));
+          $card.find('.subcell').text((qty*price).toLocaleString('vi-VN') + '₫');
         });
 
         // add to cart

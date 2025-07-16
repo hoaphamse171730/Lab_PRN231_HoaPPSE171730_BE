@@ -34,7 +34,7 @@
           .then(r => r.ok ? r.json() : Promise.reject(r.status))
           .then(data => {
             $('#totalOrders').text(data.totalOrders);
-            $('#totalRevenue').text(data.totalRevenue.toLocaleString());
+            $('#totalRevenue').text(data.totalRevenue.toLocaleString('vi-VN') + '₫');
             $('#pendingCount').text(data.pendingCount);
             $('#processingCount').text(data.processingCount);
             $('#cancelledCount').text(data.cancelledCount);

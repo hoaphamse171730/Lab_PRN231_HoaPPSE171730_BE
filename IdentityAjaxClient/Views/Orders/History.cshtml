@@ -3,52 +3,51 @@
     ViewData["Title"] = "My Orders";
 }
 
-<h2>@ViewData["Title"]</h2>
-
-<div class="row mb-3">
-    <div class="col-md-3">
-        <label class="form-label">From</label>
-        <input id="filterFrom" type="date" class="form-control" />
-    </div>
-    <div class="col-md-3">
-        <label class="form-label">To</label>
-        <input id="filterTo" type="date" class="form-control" />
-    </div>
-    <div class="col-md-3">
-        <label class="form-label">Status</label>
-        <select id="filterStatus" class="form-select">
-            <option value="">All statuses</option>
-            <option>@Constants.OrderStatusPending</option>
-            <option>@Constants.OrderStatusProcessing</option>
-            <option>@Constants.OrderStatusCompleted</option>
-            <option>@Constants.OrderStatusCancelled</option>
-        </select>
-    </div>
-    <div class="col-md-2 align-self-end">
-        <button id="btnFilter" class="btn btn-primary">Filter</button>
-    </div>
+<h2 class="text-center mb-4">@ViewData["Title"]</h2>
+<div class="orders-card">
+  <div class="row mb-4">
+      <div class="col-md-3">
+          <label class="form-label">From</label>
+          <input id="filterFrom" type="date" class="form-control" />
+      </div>
+      <div class="col-md-3">
+          <label class="form-label">To</label>
+          <input id="filterTo" type="date" class="form-control" />
+      </div>
+      <div class="col-md-3">
+          <label class="form-label">Status</label>
+          <select id="filterStatus" class="form-select">
+              <option value="">All statuses</option>
+              <option>@Constants.OrderStatusPending</option>
+              <option>@Constants.OrderStatusProcessing</option>
+              <option>@Constants.OrderStatusCompleted</option>
+              <option>@Constants.OrderStatusCancelled</option>
+          </select>
+      </div>
+      <div class="col-md-2 align-self-end d-grid">
+          <button id="btnFilter" class="btn btn-primary">Filter</button>
+      </div>
+  </div>
+  <table id="tblHistory" class="table orders-table">
+      <thead>
+          <tr>
+              <th>Order ID</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Total</th>
+              <th>Actions</th>
+          </tr>
+      </thead>
+      <tbody></tbody>
+  </table>
+  <nav>
+      <ul class="pagination">
+          <li class="page-item" id="prevPage"><button class="page-link">Previous</button></li>
+          <li class="page-item disabled"><span class="page-link" id="pageInfo"></span></li>
+          <li class="page-item" id="nextPage"><button class="page-link">Next</button></li>
+      </ul>
+  </nav>
 </div>
-
-<table id="tblHistory" class="table table-striped">
-    <thead>
-        <tr>
-            <th>Order ID</th>
-            <th>Date</th>
-            <th>Status</th>
-            <th>Total</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody></tbody>
-</table>
-
-<nav>
-    <ul class="pagination">
-        <li class="page-item" id="prevPage"><button class="page-link">Previous</button></li>
-        <li class="page-item disabled"><span class="page-link" id="pageInfo"></span></li>
-        <li class="page-item" id="nextPage"><button class="page-link">Next</button></li>
-    </ul>
-</nav>
 
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -108,12 +107,19 @@
                 `;
               }
             }
+            // Status badge class
+            let statusClass = '';
+            if (o.orderStatus === STATUS.Pending) statusClass = 'status-badge status-pending';
+            else if (o.orderStatus === STATUS.Processing) statusClass = 'status-badge status-processing';
+            else if (o.orderStatus === STATUS.Completed) statusClass = 'status-badge status-completed';
+            else if (o.orderStatus === STATUS.Cancelled) statusClass = 'status-badge status-cancelled';
+            const total = Math.max(1000, Math.round(o.totalAmount));
             return `
             <tr data-id="${o.id}">
               <td>${o.id}</td>
               <td>${new Date(o.orderDate).toLocaleString()}</td>
-              <td class="status-cell">${o.orderStatus}</td>
-              <td>$${o.totalAmount.toFixed(2)}</td>
+              <td class="status-cell"><span class="${statusClass}">${o.orderStatus}</span></td>
+              <td>${total.toLocaleString('vi-VN')}₫</td>
               <td>
                 <a href="/Orders/Details/${o.id}" class="btn btn-sm btn-info me-1">Details</a>
                 ${btns}
@@ -140,8 +146,7 @@
             contentType: 'application/json',
             data: JSON.stringify({ status: newStatus })
           }).done(()=>{
-            $row.find('.status-cell').text(newStatus);
-            $row.find('.process, .complete, .cancel').remove();
+            loadPage(currentPage);
             showNotification('Order status updated!', 'success');
           }).fail((xhr,_,err)=>{
             showNotification('Failed: '+(xhr.responseText||err), 'error');
@@ -157,13 +162,25 @@
           changeStatus($r.data('id'), STATUS.Completed, $r);
         });
         $(document).on('click','.cancel', function(){
+          const $r = $(this).closest('tr');
           // Custom confirm notification
-          if(window.confirm && confirm('Cancel this order?')) {
-            const $r = $(this).closest('tr');
-            changeStatus($r.data('id'), STATUS.Cancelled, $r);
-          } else if (!window.confirm) {
-            showNotification('Cancel this order? (Please use a modern browser for confirmation dialog)', 'info');
-          }
+          const orderId = $r.data('id');
+          const notifId = 'notif-cancel-' + orderId;
+          // Remove any existing confirm notification
+          $('#' + notifId).remove();
+          const container = document.getElementById('notification-container');
+          const notif = document.createElement('div');
+          notif.className = 'notification warning';
+          notif.id = notifId;
+          notif.innerHTML = `Are you sure you want to cancel this order? <button class="btn btn-sm btn-danger ms-2" style="border-radius:12px;" id="btnConfirmCancel${orderId}">Yes, Cancel</button>`;
+          container.appendChild(notif);
+          document.getElementById('btnConfirmCancel'+orderId).onclick = function() {
+            notif.remove();
+            changeStatus(orderId, STATUS.Cancelled, $r);
+          };
+          setTimeout(() => {
+            if (notif.parentNode) notif.remove();
+          }, 5000);
         });
 
         // Apply calendar filters

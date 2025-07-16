@@ -2,9 +2,11 @@
     ViewData["Title"] = "Payment Successful";
 }
 
-<h2>@ViewData["Title"]</h2>
-<p>Your order has been placed and is now pending.</p>
-<a href="/Orders/History" class="btn btn-primary">View My Orders</a>
+<div class="order-status-card">
+  <h2>@ViewData["Title"]</h2>
+  <p>Your order has been placed and is now pending.</p>
+  <a href="/Orders/History" class="btn btn-primary">View My Orders</a>
+</div>
 
 @section Scripts {
     <script>

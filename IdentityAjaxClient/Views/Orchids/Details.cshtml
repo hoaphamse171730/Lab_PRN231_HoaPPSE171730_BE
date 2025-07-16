@@ -28,6 +28,7 @@
               return;
             }
             const o = await resp.json();
+            const price = Math.max(1000, Math.round(o.price));
             $('#detailsContainer').html(`
               <div class="col-md-6 text-center">
                 <img src="${o.orchidUrl||'/images/placeholder.png'}"
@@ -36,13 +37,13 @@
               <div class="col-md-6">
                 <h3>${o.orchidName}</h3>
                 <p><strong>Category:</strong> ${o.category?.categoryName||'—'}</p>
-                <p><strong>Unit Price:</strong> $${o.price.toFixed(2)}</p>
+                <p><strong>Unit Price:</strong> ${price.toLocaleString('vi-VN')}₫</p>
                 <p>${o.orchidDescription||''}</p>
                 <div class="input-group mb-3" style="max-width:160px;">
                   <span class="input-group-text">Quantity</span>
                   <input type="number" id="detailQty" class="form-control" aria-label="Quantity" value="1" min="1" />
                 </div>
-                <p><strong>Total:</strong> $<span id="detailTotal">${o.price.toFixed(2)}</span></p>
+                <p><strong>Total:</strong> <span id="detailTotal">${price.toLocaleString('vi-VN')}₫</span></p>
                 <button id="btnAddToCart" class="btn btn-primary me-2">Add to Cart</button>
                 <a href="/Orchids/Browse" class="btn btn-link">Back to Catalog</a>
               </div>
@@ -51,7 +52,7 @@
             // recalc total on qty change
             $('#detailQty').on('input', function(){
               const qty = parseInt(this.value) || 1;
-              $('#detailTotal').text((o.price * qty).toFixed(2));
+              $('#detailTotal').text((qty*price).toLocaleString('vi-VN') + '₫');
             });
 
             // add to cart

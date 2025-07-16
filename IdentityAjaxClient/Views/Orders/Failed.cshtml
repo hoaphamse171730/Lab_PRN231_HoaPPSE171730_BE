@@ -1,9 +1,11 @@
 ﻿@{
     ViewData["Title"] = "Payment Failed";
 }
-<h2>Payment Failed or Cancelled</h2>
-<p>Your order was <strong>not</strong> placed. Your cart is still intact.</p>
-<a href="Cart" class="btn btn-secondary">Go back to Cart</a>
+<div class="order-status-card">
+  <h2>Payment Failed or Cancelled</h2>
+  <p>Your order was <strong>not</strong> placed. Your cart is still intact.</p>
+  <a href="Cart" class="btn btn-secondary">Go back to Cart</a>
+</div>
 @section Scripts {
     <script>
         showNotification('Payment failed or cancelled. Please try again.', 'error');

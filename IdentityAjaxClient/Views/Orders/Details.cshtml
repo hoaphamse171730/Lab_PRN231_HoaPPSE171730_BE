@@ -4,26 +4,26 @@
     ViewData["Title"] = "Order Details";
 }
 
-<h2>@ViewData["Title"]</h2>
-
-<div class="mb-4">
-    <p><strong>Order #:</strong> @Model</p>
-    <p><strong>Date:</strong> <span id="odDate">…</span></p>
-    <p><strong>Status:</strong> <span id="odStatus">…</span></p>
-    <p><strong>Total:</strong> $<span id="odTotal">…</span></p>
+<h2 class="text-center mb-4">@ViewData["Title"]</h2>
+<div class="order-details-card">
+  <div class="mb-4">
+      <p><strong>Order #:</strong> @Model</p>
+      <p><strong>Date:</strong> <span id="odDate">…</span></p>
+      <p><strong>Status:</strong> <span id="odStatus">…</span></p>
+      <p><strong>Total:</strong> $<span id="odTotal">…</span></p>
+  </div>
+  <table id="tblDetails" class="table order-details-table">
+      <thead>
+          <tr>
+              <th>Orchid</th>
+              <th>Unit Price</th>
+              <th>Quantity</th>
+              <th>Subtotal</th>
+          </tr>
+      </thead>
+      <tbody></tbody>
+  </table>
 </div>
-
-<table id="tblDetails" class="table table-bordered">
-    <thead>
-        <tr>
-            <th>Orchid</th>
-            <th>Unit Price</th>
-            <th>Quantity</th>
-            <th>Subtotal</th>
-        </tr>
-    </thead>
-    <tbody></tbody>
-</table>
 
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -41,16 +41,20 @@
           }
           const o = await resp.json();
           $('#odDate').text(new Date(o.orderDate).toLocaleString());
-          $('#odStatus').text(o.orderStatus);
-          $('#odTotal').text(o.totalAmount.toFixed(2));
+          $('#odStatus').html(`<span class="status-badge status-${o.orderStatus.toLowerCase()}">${o.orderStatus}</span>`);
+          $('#odTotal').text(Math.max(1000, Math.round(o.totalAmount)).toLocaleString('vi-VN') + '₫');
 
-          const rows = o.orderDetails.map(d => `
-            <tr>
-              <td>${d.orchid.orchidName}</td>
-              <td>$${d.price.toFixed(2)}</td>
-              <td>${d.quantity}</td>
-              <td>$${(d.price * d.quantity).toFixed(2)}</td>
-            </tr>`).join('');
+          const rows = o.orderDetails.map(d => {
+            const price = Math.max(1000, Math.round(d.price));
+            const sub = price * d.quantity;
+            return `
+              <tr>
+                <td>${d.orchid.orchidName}</td>
+                <td>${price.toLocaleString('vi-VN')}₫</td>
+                <td>${d.quantity}</td>
+                <td>${sub.toLocaleString('vi-VN')}₫</td>
+              </tr>`;
+          }).join('');
           $('#tblDetails tbody').html(rows);
         })();
     </script>
