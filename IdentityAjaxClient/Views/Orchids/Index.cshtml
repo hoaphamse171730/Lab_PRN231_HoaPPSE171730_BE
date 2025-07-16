@@ -27,20 +27,7 @@
 
 <button id="btnAdd" class="btn btn-success mb-3">Add New Orchid</button>
 
-<table id="tblOrchids" class="table table-striped">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Price</th>
-            <th>Natural?</th>
-            <th>Category</th>
-            <th>Image</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody></tbody>
-</table>
+<div id="orchidCardGrid" class="row g-4"></div>
 
 <nav>
     <ul class="pagination">
@@ -123,27 +110,31 @@
           function loadPage(page){
             $.get(`${ROUTES.orchids}?${buildQuery(page)}`, resp=>{
               totalCount = resp.totalCount;
-              renderTable(resp.items);
+              renderCards(resp.items);
               updatePagination();
             });
           }
 
-          function renderTable(items){
-            const html = items.map(o=>`
-              <tr data-id="${o.orchidId}">
-                <td>${o.orchidId}</td>
-                <td>${o.orchidName}</td>
-                <td>${o.price.toFixed(2)}</td>
-                <td>${o.isNatural}</td>
-                <td>${o.category?.categoryName||'—'}</td>
-                <td>${o.orchidUrl
-                     ? `<img src="${o.orchidUrl}" style="max-height:60px;"/>`
-                     : '—'}</td>
-                <td>
-                  <button class="btn btn-sm btn-primary edit" data-id="${o.orchidId}">Edit</button>
-                </td>
-              </tr>` ).join('');
-            $('#tblOrchids tbody').html(html);
+          function renderCards(items){
+            const cards = items.map(o=>`
+              <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                <div class="card h-100 shadow orchid-card">
+                  <img src="${o.orchidUrl || '/images/placeholder.png'}" class="card-img-top" alt="${o.orchidName}" style="height:180px; object-fit:cover; background:#fff0f6;">
+                  <div class="card-body d-flex flex-column">
+                    <h5 class="card-title mb-1">${o.orchidName}</h5>
+                    <div class="mb-2">
+                      <span class="badge bg-${o.isNatural ? 'success' : 'secondary'}" style="font-size:0.9em;">${o.isNatural ? 'Natural' : 'Hybrid'}</span>
+                    </div>
+                    <div class="mb-2 text-muted" style="font-size:0.95em;">${o.category?.categoryName||'—'}</div>
+                    <div class="mb-2"><strong>$${o.price.toFixed(2)}</strong></div>
+                    <div class="mt-auto d-flex gap-2">
+                      <button class="btn btn-sm btn-primary edit" data-id="${o.orchidId}">Edit</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `).join('');
+            $('#orchidCardGrid').html(cards);
           }
 
           function updatePagination(){

@@ -27,22 +27,7 @@
     </div>
 </div>
 
-<table id="tblCatalog" class="table table-hover">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Price</th>
-            <th>Natural?</th>
-            <th>Category</th>
-            <th>Image</th>
-            <th style="width:80px">Qty</th>
-            <th style="width:100px">Total</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody></tbody>
-</table>
+<div id="orchidCardGrid" class="row g-4"></div>
 
 <nav>
     <ul class="pagination">
@@ -59,7 +44,7 @@
         const token  = localStorage.getItem('jwt') || '';
         $.ajaxSetup({ headers:{ 'Authorization':'Bearer '+token } });
 
-        const pageSize     = 10;
+        const pageSize     = 6;
         let currentPage    = 1,
             totalCount     = 0,
             searchName     = '',
@@ -83,36 +68,37 @@
           $.get(`${ROUTES.orchids}?${buildQuery(page)}`, resp => {
             const { items, totalCount: tot } = resp;
             totalCount = tot;
-            renderTable(items);
+            renderCards(items);
             updatePagination();
           });
         }
 
-        function renderTable(list) {
-          const rows = list.map(o => `
-            <tr data-id="${o.orchidId}" data-price="${o.price}">
-              <td>${o.orchidId}</td>
-              <td>${o.orchidName}</td>
-              <td>${o.price.toFixed(2)}</td>
-              <td>${o.isNatural ? 'Yes' : 'No'}</td>
-              <td>${o.category?.categoryName || '—'}</td>
-              <td>${o.orchidUrl
-                   ? `<img src="${o.orchidUrl}" style="max-height:60px;" />`
-                   : '—'}</td>
-              <td>
-                <input type="number" class="form-control form-control-sm qty"
-                       value="1" min="1" />
-              </td>
-              <td class="subcell">${o.price.toFixed(2)}</td>
-              <td>
-                <a href="/Orchids/Details/${o.orchidId}"
-                   class="btn btn-sm btn-info me-1">Details</a>
-                <button class="btn btn-sm btn-primary add-cart">
-                  Add to Cart
-                </button>
-              </td>
-            </tr>`).join('');
-          $('#tblCatalog tbody').html(rows);
+        function renderCards(list) {
+          const cards = list.map(o => `
+            <div class="col-12 col-sm-6 col-md-4">
+              <div class="card h-100 shadow orchid-card">
+                <img src="${o.orchidUrl || '/images/placeholder.png'}" class="card-img-top" alt="${o.orchidName}" style="height:180px; object-fit:cover; background:#fff0f6;">
+                <div class="card-body d-flex flex-column">
+                  <h5 class="card-title mb-1">${o.orchidName}</h5>
+                  <div class="mb-2">
+                    <span class="badge bg-${o.isNatural ? 'success' : 'secondary'}" style="font-size:0.9em;">${o.isNatural ? 'Natural' : 'Hybrid'}</span>
+                  </div>
+                  <div class="mb-2 text-muted" style="font-size:0.95em;">${o.category?.categoryName || '—'}</div>
+                  <div class="mb-2"><strong>$${o.price.toFixed(2)}</strong></div>
+                  <div class="input-group input-group-sm mb-2" style="max-width:160px;">
+                    <span class="input-group-text">Quantity</span>
+                    <input type="number" class="form-control qty" aria-label="Quantity" value="1" min="1" data-price="${o.price}" data-id="${o.orchidId}">
+                  </div>
+                  <div class="mb-2">Total: $<span class="subcell">${o.price.toFixed(2)}</span></div>
+                  <div class="mt-auto d-flex gap-2">
+                    <a href="/Orchids/Details/${o.orchidId}" class="btn btn-sm btn-info">Details</a>
+                    <button class="btn btn-sm btn-primary add-cart" data-id="${o.orchidId}">Add to Cart</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `).join('');
+          $('#orchidCardGrid').html(cards);
         }
 
         function updatePagination() {
@@ -138,23 +124,23 @@
 
         // qty → subtotal
         $(document).on('input','.qty',function(){
-          const $r   = $(this).closest('tr'),
-                qty = parseInt(this.value)||1,
-                pri = +$r.data('price');
-          $r.find('.subcell').text((qty*pri).toFixed(2));
+          const $card = $(this).closest('.card');
+          const qty = parseInt(this.value)||1;
+          const price = parseFloat($(this).data('price'));
+          $card.find('.subcell').text((qty*price).toFixed(2));
         });
 
         // add to cart
         $(document).on('click','.add-cart',function(){
-          const $r    = $(this).closest('tr'),
-                id    = +$r.data('id'),
-                name  = $r.find('td').eq(1).text(),
-                pri   = +$r.data('price'),
-                qty   = +$r.find('.qty').val()||1,
-                cart  = JSON.parse(localStorage.getItem('cart')||'[]'),
-                item  = cart.find(i=>i.id===id);
+          const $card = $(this).closest('.card');
+          const id    = +$(this).data('id');
+          const name  = $card.find('.card-title').text();
+          const price = parseFloat($card.find('.qty').data('price'));
+          const qty   = +$card.find('.qty').val()||1;
+          const cart  = JSON.parse(localStorage.getItem('cart')||'[]');
+          const item  = cart.find(i=>i.id===id);
           if(item) item.quantity += qty;
-          else cart.push({ id, name, price: pri, quantity: qty });
+          else cart.push({ id, name, price, quantity: qty });
           localStorage.setItem('cart', JSON.stringify(cart));
           showNotification(`Added ${qty}× ${name} to cart!`, 'success');
         });

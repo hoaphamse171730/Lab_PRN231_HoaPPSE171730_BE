@@ -39,12 +39,12 @@
                 <p><strong>Unit Price:</strong> $${o.price.toFixed(2)}</p>
                 <p>${o.orchidDescription||''}</p>
                 <div class="input-group mb-3" style="max-width:160px;">
-                  <span class="input-group-text">Qty</span>
-                  <input type="number" id="detailQty" class="form-control" value="1" min="1" />
+                  <span class="input-group-text">Quantity</span>
+                  <input type="number" id="detailQty" class="form-control" aria-label="Quantity" value="1" min="1" />
                 </div>
                 <p><strong>Total:</strong> $<span id="detailTotal">${o.price.toFixed(2)}</span></p>
                 <button id="btnAddToCart" class="btn btn-primary me-2">Add to Cart</button>
-                <a asp-controller="Orchids" asp-action="Browse" class="btn btn-link">Back to Catalog</a>
+                <a href="/Orchids/Browse" class="btn btn-link">Back to Catalog</a>
               </div>
             `);
 

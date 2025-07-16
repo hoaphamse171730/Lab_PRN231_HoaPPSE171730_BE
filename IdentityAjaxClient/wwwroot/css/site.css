@@ -195,6 +195,162 @@ form {
   box-shadow: 0 2px 12px rgba(124,58,237,0.07);
 }
 
+/* Custom qty input */
+.qty, #detailQty {
+  border-radius: 12px;
+  border: 1.5px solid #e9d5ff;
+  background: #f9f7fa;
+  color: #3d2956;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: none;
+  transition: border-color 0.2s;
+}
+.qty:focus, #detailQty:focus {
+  border-color: #a78bfa;
+  outline: none;
+}
+
+/* Total field */
+.subcell, #detailTotal {
+  font-size: 1.1em;
+  font-weight: 600;
+  color: #7c3aed;
+  background: #f3e8ff;
+  border-radius: 8px;
+  padding: 0.2em 0.7em;
+  display: inline-block;
+}
+
+/* Detail button */
+.btn-info, .btn-info:visited {
+  background: linear-gradient(90deg, #a5b4fc 0%, #fbcfe8 100%);
+  color: #3d2956 !important;
+  border: none;
+  border-radius: 20px;
+  font-weight: 600;
+  transition: box-shadow 0.2s, background 0.2s;
+}
+.btn-info:hover {
+  background: linear-gradient(90deg, #fbcfe8 0%, #a5b4fc 100%);
+  color: #7c3aed !important;
+  box-shadow: 0 4px 16px rgba(124,58,237,0.10);
+}
+
+/* Add New Orchid button */
+#btnAdd, .btn-success {
+  background: linear-gradient(90deg, #bbf7d0 0%, #f0fdf4 100%);
+  color: #166534 !important;
+  border: none;
+  border-radius: 24px;
+  font-weight: 600;
+  transition: box-shadow 0.2s, background 0.2s;
+}
+#btnAdd:hover, .btn-success:hover {
+  background: linear-gradient(90deg, #f0fdf4 0%, #bbf7d0 100%);
+  color: #16a34a !important;
+  box-shadow: 0 4px 16px rgba(34,197,94,0.10);
+}
+
+/* Pagination */
+.pagination {
+  justify-content: center;
+  margin-top: 2rem;
+}
+.page-link {
+  border-radius: 12px !important;
+  color: #7c3aed;
+  background: #f3e8ff;
+  border: 1.5px solid #e9d5ff;
+  margin: 0 0.2em;
+  font-weight: 600;
+  transition: background 0.2s, color 0.2s;
+}
+.page-link:hover, .page-item.active .page-link {
+  background: #a78bfa;
+  color: #fff !important;
+  border-color: #a78bfa;
+}
+.page-item.disabled .page-link {
+  background: #f9f7fa;
+  color: #bdbdbd;
+  border-color: #e9d5ff;
+}
+
+/* Details page card */
+#detailsContainer {
+  background: #fff0f6 !important;
+  border-radius: 24px !important;
+  box-shadow: 0 4px 24px rgba(124,58,237,0.10) !important;
+  padding: 2.5rem 1.5rem !important;
+  margin-bottom: 2.5rem !important;
+}
+#detailsContainer img {
+  border-radius: 18px;
+  box-shadow: 0 2px 12px rgba(124,58,237,0.07);
+  background: #fff0f6;
+}
+#detailsContainer h3 {
+  color: #7c3aed;
+  font-weight: 700;
+  margin-bottom: 0.7em;
+}
+#detailsContainer .input-group-text {
+  background: #f3e8ff;
+  color: #7c3aed;
+  border: 1.5px solid #e9d5ff;
+  border-radius: 12px 0 0 12px;
+  font-weight: 600;
+}
+#detailsContainer .form-control {
+  border-radius: 0 12px 12px 0;
+  border: 1.5px solid #e9d5ff;
+  background: #f9f7fa;
+  color: #3d2956;
+  font-weight: 600;
+}
+
+/* Back to Catalog button */
+.btn-link, .btn-link:visited {
+  color: #7c3aed !important;
+  background: #f3e8ff;
+  border-radius: 18px;
+  padding: 0.5em 1.2em;
+  font-weight: 600;
+  text-decoration: none !important;
+  border: 1.5px solid #e9d5ff;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  box-shadow: none;
+}
+.btn-link:hover {
+  background: #a78bfa;
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgba(124,58,237,0.10);
+}
+
+/* Quantity field in orchid browse cards */
+.orchid-card .input-group-text {
+  background: #f3e8ff;
+  color: #7c3aed;
+  border: 1.5px solid #e9d5ff;
+  border-radius: 12px 0 0 12px;
+  font-weight: 600;
+}
+.orchid-card .qty {
+  border-radius: 0 12px 12px 0;
+  border: 1.5px solid #e9d5ff;
+  background: #f9f7fa;
+  color: #3d2956;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: none;
+  transition: border-color 0.2s;
+}
+.orchid-card .qty:focus {
+  border-color: #a78bfa;
+  outline: none;
+}
+
 @media (max-width: 768px) {
   .card-img-top {
     height: 140px;
