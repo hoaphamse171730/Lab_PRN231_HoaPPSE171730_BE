@@ -3,26 +3,78 @@
     ViewData["Title"] = "Staff Dashboard";
 }
 
-<h2>@ViewData["Title"]</h2>
-
-<div class="row">
-    <div class="col">Total Orders: <span id="totalOrders"></span></div>
-    <div class="col">Total Revenue: <span id="totalRevenue"></span></div>
-    <div class="col">Pending: <span id="pendingCount"></span></div>
-    <div class="col">Processing: <span id="processingCount"></span></div>
-    <div class="col">Cancelled: <span id="cancelledCount"></span></div>
-</div>                
-<h3>Top 5 Best‑selling Orchids</h3>
-<ul id="topOrchids"></ul>
+<h2 class="text-center mb-4">@ViewData["Title"]</h2>
+<div class="row g-4 mb-4">
+  <div class="col-md-2 col-6">
+    <div class="card kpi-card text-center p-3">
+      <div class="kpi-label">Total Orders</div>
+      <div class="kpi-value" id="totalOrders"></div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card kpi-card text-center p-3">
+      <div class="kpi-label">Total Revenue</div>
+      <div class="kpi-value text-success" id="totalRevenue"></div>
+    </div>
+  </div>
+  <div class="col-md-2 col-4">
+    <div class="card kpi-card text-center p-3">
+      <div class="kpi-label">Pending</div>
+      <div class="kpi-value text-warning" id="pendingCount"></div>
+    </div>
+  </div>
+  <div class="col-md-2 col-4">
+    <div class="card kpi-card text-center p-3">
+      <div class="kpi-label">Processing</div>
+      <div class="kpi-value text-primary" id="processingCount"></div>
+    </div>
+  </div>
+  <div class="col-md-2 col-4">
+    <div class="card kpi-card text-center p-3">
+      <div class="kpi-label">Cancelled</div>
+      <div class="kpi-value text-danger" id="cancelledCount"></div>
+    </div>
+  </div>
+</div>
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="card p-4 h-100">
+      <h4 class="mb-3">Orders Trend</h4>
+      <canvas id="ordersTrendChart" height="180"></canvas>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card p-4 h-100">
+      <h4 class="mb-3">Revenue by Category</h4>
+      <canvas id="revenueByCategoryChart" height="180"></canvas>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card p-4 h-100">
+      <h4 class="mb-3">Top Customers</h4>
+      <canvas id="topCustomersChart" height="180"></canvas>
+    </div>
+  </div>
+</div>
+<div class="card p-4 mb-4">
+  <h4 class="mb-3">Top 5 Best‑selling Orchids</h4>
+  <ul id="topOrchids" class="list-group list-group-flush"></ul>
+</div>
 
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.7/signalr.min.js"></script>
     <script>
         $(function() {
           const ROUTES = {
             overview:   '@ApiRoutes.StatsOverview',
             topOrchids: '@ApiRoutes.StatsTopOrchids',
+            revenueTrend: '@ApiRoutes.StatsRevenueTrend',
+            orderStatus: '@ApiRoutes.StatsOrderStatus',
+            ordersTrend: '@ApiRoutes.StatsOverview'.replace('overview', 'orders-trend'),
+            revenueByCategory: '@ApiRoutes.StatsOverview'.replace('overview', 'revenue-by-category'),
+            topCustomers: '@ApiRoutes.StatsOverview'.replace('overview', 'top-customers'),
             orderHub:   '@ApiRoutes.OrderHub'
           };
           const jwt = localStorage.getItem('jwt') || '';
@@ -49,12 +101,165 @@
           .then(list => {
             const $ul = $('#topOrchids').empty();
             list.forEach(x => $ul.append(
-              `<li>${x.orchidName} (ID ${x.orchidId}): ${x.sold} sold</li>`
+              `<li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>${x.orchidName} (ID ${x.orchidId})</span>
+                <span class="badge bg-success rounded-pill">${x.sold} sold</span>
+              </li>`
             ));
           })
           .catch(err => console.error('Top‑orchids load error', err));
 
-          // 3) Wire up SignalR
+          // 3) Revenue Trend Chart
+          fetch(ROUTES.revenueTrend, {
+            headers: { 'Authorization': 'Bearer ' + jwt }
+          })
+          .then(r => r.ok ? r.json() : Promise.reject(r.status))
+          .then(data => {
+            const ctx = document.getElementById('revenueTrendChart').getContext('2d');
+            new Chart(ctx, {
+              type: 'line',
+              data: {
+                labels: data.labels,
+                datasets: [{
+                  label: 'Revenue (₫)',
+                  data: data.values,
+                  borderColor: '#7c3aed',
+                  backgroundColor: 'rgba(124,58,237,0.08)',
+                  tension: 0.3,
+                  fill: true,
+                  pointRadius: 4,
+                  pointBackgroundColor: '#a78bfa',
+                }]
+              },
+              options: {
+                plugins: { legend: { display: false } },
+                scales: {
+                  y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString('vi-VN') + '₫' } }
+                }
+              }
+            });
+          })
+          .catch(err => console.error('Revenue trend load error', err));
+
+          // 4) Order Status Pie Chart
+          fetch(ROUTES.orderStatus, {
+            headers: { 'Authorization': 'Bearer ' + jwt }
+          })
+          .then(r => r.ok ? r.json() : Promise.reject(r.status))
+          .then(data => {
+            const ctx = document.getElementById('orderStatusPie').getContext('2d');
+            new Chart(ctx, {
+              type: 'pie',
+              data: {
+                labels: data.labels,
+                datasets: [{
+                  data: data.values,
+                  backgroundColor: [
+                    '#fef08a', // Pending
+                    '#93c5fd', // Processing
+                    '#bbf7d0', // Completed
+                    '#fecaca'  // Cancelled
+                  ]
+                }]
+              },
+              options: {
+                plugins: { legend: { position: 'bottom' } }
+              }
+            });
+          })
+          .catch(err => console.error('Order status pie load error', err));
+
+          // Orders Trend Chart
+          fetch(ROUTES.ordersTrend, {
+            headers: { 'Authorization': 'Bearer ' + jwt }
+          })
+          .then(r => r.ok ? r.json() : Promise.reject(r.status))
+          .then(data => {
+            const ctx = document.getElementById('ordersTrendChart').getContext('2d');
+            new Chart(ctx, {
+              type: 'line',
+              data: {
+                labels: data.labels,
+                datasets: [{
+                  label: 'Orders',
+                  data: data.values,
+                  borderColor: '#38bdf8',
+                  backgroundColor: 'rgba(59,130,246,0.08)',
+                  tension: 0.3,
+                  fill: true,
+                  pointRadius: 4,
+                  pointBackgroundColor: '#38bdf8',
+                }]
+              },
+              options: {
+                plugins: { legend: { display: false } },
+                scales: {
+                  y: { beginAtZero: true }
+                }
+              }
+            });
+          })
+          .catch(err => console.error('Orders trend load error', err));
+
+          // Revenue by Category Chart
+          fetch(ROUTES.revenueByCategory, {
+            headers: { 'Authorization': 'Bearer ' + jwt }
+          })
+          .then(r => r.ok ? r.json() : Promise.reject(r.status))
+          .then(data => {
+            const ctx = document.getElementById('revenueByCategoryChart').getContext('2d');
+            new Chart(ctx, {
+              type: 'bar',
+              data: {
+                labels: data.labels,
+                datasets: [{
+                  label: 'Revenue (₫)',
+                  data: data.values,
+                  backgroundColor: '#a7f3d0',
+                  borderColor: '#16a34a',
+                  borderWidth: 2
+                }]
+              },
+              options: {
+                plugins: { legend: { display: false } },
+                scales: {
+                  y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString('vi-VN') + '₫' } }
+                }
+              }
+            });
+          })
+          .catch(err => console.error('Revenue by category load error', err));
+
+          // Top Customers Chart
+          fetch(ROUTES.topCustomers, {
+            headers: { 'Authorization': 'Bearer ' + jwt }
+          })
+          .then(r => r.ok ? r.json() : Promise.reject(r.status))
+          .then(data => {
+            const ctx = document.getElementById('topCustomersChart').getContext('2d');
+            new Chart(ctx, {
+              type: 'bar',
+              data: {
+                labels: data.labels,
+                datasets: [{
+                  label: 'Total Spent (₫)',
+                  data: data.values,
+                  backgroundColor: '#fbcfe8',
+                  borderColor: '#7c3aed',
+                  borderWidth: 2
+                }]
+              },
+              options: {
+                plugins: { legend: { display: false } },
+                scales: {
+                  y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString('vi-VN') + '₫' } }
+                }
+              }
+            });
+          })
+          .catch(err => console.error('Top customers load error', err));
+
+          // 5) Wire up SignalR
           const connection = new signalR.HubConnectionBuilder()
             .withUrl(ROUTES.orderHub, {
               accessTokenFactory: () => jwt

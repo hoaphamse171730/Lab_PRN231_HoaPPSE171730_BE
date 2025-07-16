@@ -24,6 +24,8 @@ namespace BusinessObjects.Shared
         public static string OrderHub => $"{Constants.ApiBaseUrl}/hubs/orders";
         public static string StatsOverview => $"{Constants.ApiBaseUrl}/api/Stats/overview";
         public static string StatsTopOrchids => $"{Constants.ApiBaseUrl}/api/Stats/top-orchids";
+        public static string StatsRevenueTrend => $"{Constants.ApiBaseUrl}/api/Stats/revenue-trend";
+        public static string StatsOrderStatus => $"{Constants.ApiBaseUrl}/api/Stats/order-status";
 
     }
 }
