@@ -2,29 +2,52 @@
     ViewData["Title"] = "Your Profile";
 }
 
-<h2>@ViewData["Title"]</h2>
-
-<form id="profileForm" class="mb-4">
-    <div class="mb-3">
-        <label for="accountName" class="form-label">Name</label>
-        <input id="accountName" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label for="email" class="form-label">Email (read-only)</label>
-        <input id="email" class="form-control" readonly />
-    </div>
-    <div class="mb-3">
-        <label for="role" class="form-label">Role</label>
-        <input id="role" class="form-control" readonly />
-    </div>
-    <button type="submit" class="btn btn-primary">Save Changes</button>
-</form>
+<h2 class="mb-4">@ViewData["Title"]</h2>
+<div class="card p-4" style="max-width: 600px; margin: 0 auto; border-radius: 24px; box-shadow: 0 4px 24px rgba(124,58,237,0.10); background: #fff0f6;">
+  <div class="d-flex justify-content-end gap-2 mb-3">
+    <button type="submit" form="profileForm" class="btn btn-primary">Save Changes</button>
+    <button type="button" class="btn btn-info" data-bs-toggle="collapse" data-bs-target="#changePwdCollapse">Change Password</button>
+  </div>
+  <form id="profileForm" class="mb-4">
+      <div class="mb-3">
+          <label for="accountName" class="form-label">Name</label>
+          <input id="accountName" class="form-control" />
+      </div>
+      <div class="mb-3">
+          <label for="email" class="form-label">Email (read-only)</label>
+          <input id="email" class="form-control" readonly />
+      </div>
+      <div class="mb-3">
+          <label for="role" class="form-label">Role</label>
+          <input id="role" class="form-control" readonly />
+      </div>
+  </form>
+  <div class="collapse" id="changePwdCollapse">
+    <form id="changePasswordForm" class="mb-2 mt-2">
+      <div class="mb-3">
+          <label for="currentPassword" class="form-label">Current Password</label>
+          <input id="currentPassword" type="password" class="form-control" required />
+      </div>
+      <div class="mb-3">
+          <label for="newPassword" class="form-label">New Password</label>
+          <input id="newPassword" type="password" class="form-control" required />
+      </div>
+      <div class="mb-3">
+          <label for="confirmNewPassword" class="form-label">Confirm New Password</label>
+          <input id="confirmNewPassword" type="password" class="form-control" required />
+      </div>
+      <button type="submit" class="btn btn-primary">Change Password</button>
+    </form>
+  </div>
+</div>
 
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const ROUTES = {
-          me: '@BusinessObjects.Shared.ApiRoutes.AuthMe'
+          me: '@BusinessObjects.Shared.ApiRoutes.AuthMe',
+          changePwd: '@BusinessObjects.Shared.ApiRoutes.AuthChangePassword'
         };
         const token = localStorage.getItem('jwt') || '';
 
@@ -58,6 +81,37 @@
             return showNotification('Update failed: ' + err, 'error');
           }
           showNotification('Profile updated successfully', 'success');
+        });
+
+        // handle change password
+        $('#changePasswordForm').submit(async function(e) {
+          e.preventDefault();
+          const req = {
+            currentPassword:    $('#currentPassword').val(),
+            newPassword:        $('#newPassword').val(),
+            confirmNewPassword: $('#confirmNewPassword').val()
+          };
+
+          try {
+            const resp = await fetch(ROUTES.changePwd, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+              },
+              body: JSON.stringify(req)
+            });
+            if (resp.status === 204) {
+              showNotification('Password changed successfully.', 'success');
+              $('#changePwdCollapse').collapse('hide');
+              $('#changePasswordForm')[0].reset();
+              return;
+            }
+            const err = await resp.text();
+            showNotification('Error: ' + err, 'error');
+          } catch (ex) {
+            showNotification('Request failed: ' + ex, 'error');
+          }
         });
     </script>
 }

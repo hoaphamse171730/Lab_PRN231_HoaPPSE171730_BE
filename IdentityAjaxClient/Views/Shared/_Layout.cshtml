@@ -48,11 +48,6 @@
                     <li class="nav-item" id="navProfile">
                         <a class="nav-link" asp-controller="Account" asp-action="Profile">Profile</a>
                     </li>
-                    <li class="nav-item" id="navChangePassword">
-                        <a class="nav-link" asp-controller="Account" asp-action="ChangePassword">
-                            Change Password
-                        </a>
-                    </li>
                     <li class="nav-item" id="navCategoriesMgmt">
                         <a class="nav-link" asp-controller="Categories" asp-action="Index">
                             Manage Categories
@@ -126,7 +121,6 @@
             $('#navDashboard').toggle(role === 'Staff');
             $('#navOrchidsBrowse').toggle(role === 'Customer');
             $('#navProfile').toggle(!!token);
-            $('#navChangePassword').toggle(!!token);
             $('#navCategoriesMgmt').toggle(role === 'Staff');
             $('#navCart').toggle(localStorage.getItem('role') === 'Customer');
             $('#navMyOrders').toggle(!!token);
